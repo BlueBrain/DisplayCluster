@@ -37,49 +37,50 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef LOCALPIXELSTREAMERMANAGER_H
-#define LOCALPIXELSTREAMERMANAGER_H
+#include "PDFInteractionDelegate.h"
+#include "ContentWindowManager.h"
+#include "PDFContent.h"
+#include "main.h"
 
-#include <map>
-#include <boost/shared_ptr.hpp>
-#include <QMutex>
-#include <QObject>
-#include <QPointF>
-
-class LocalPixelStreamer;
-class DisplayGroupManager;
-class ContentWindowManager;
-class DockPixelStreamer;
-
-class LocalPixelStreamerManager : public QObject
+PDFInteractionDelegate::PDFInteractionDelegate(ContentWindowManager *cwm)
+    : ZoomInteractionDelegate(cwm)
 {
-Q_OBJECT
+    assert(contentWindowManager_->getContent()->getType() == CONTENT_TYPE_PDF);
+}
 
-public:
-    LocalPixelStreamerManager(DisplayGroupManager *displayGroupManager);
 
-    bool createWebBrowser(QString uri, QString url);
+void PDFInteractionDelegate::tap(QTapGesture *gesture)
+{
+    if ( gesture->state() == Qt::GestureFinished )
+    {
+        double x, y, w, h;
+        contentWindowManager_->getCoordinates(x, y, w, h);
 
-    bool isDockOpen();
-    void openDockAt(QPointF pos);
-    DockPixelStreamer* getDockInstance();
+        double winCenterX = (x + 0.5 * w) * g_configuration->getTotalWidth();
 
-    void clear();
+        if (gesture->position().x() > winCenterX)
+            getPDFContent()->nextPage();
+        else
+            getPDFContent()->previousPage();
+    }
+}
 
-public slots:
+PDFContent *PDFInteractionDelegate::getPDFContent()
+{
+    return static_cast<PDFContent*>(contentWindowManager_->getContent().get());
+}
 
-    void removePixelStreamer(QString uri);
 
-private:
+void PDFInteractionDelegate::swipe(QSwipeGesture *gesture)
+{
+    if (gesture->horizontalDirection() == QSwipeGesture::Left)
+    {
+        getPDFContent()->previousPage();
+    }
+    else if (gesture->horizontalDirection() == QSwipeGesture::Right)
+    {
+        getPDFContent()->nextPage();
+    }
+}
 
-    // all existing objects
-    std::map<QString, boost::shared_ptr<LocalPixelStreamer> > map_;
 
-    // To connect new LocalPixelStreamers
-    DisplayGroupManager *displayGroupManager_;
-
-    void setWindowManagerPosition(boost::shared_ptr<ContentWindowManager> cwm, QPointF pos);
-    void bindPixelStreamerInteraction(LocalPixelStreamer* streamer);
-};
-
-#endif // LOCALPIXELSTREAMERMANAGER_H

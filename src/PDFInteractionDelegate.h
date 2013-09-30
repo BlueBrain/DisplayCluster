@@ -37,49 +37,25 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef LOCALPIXELSTREAMERMANAGER_H
-#define LOCALPIXELSTREAMERMANAGER_H
+#ifndef PDFINTERACTIONDELEGATE_H
+#define PDFINTERACTIONDELEGATE_H
 
-#include <map>
-#include <boost/shared_ptr.hpp>
-#include <QMutex>
-#include <QObject>
-#include <QPointF>
+#include "ZoomInteractionDelegate.h"
 
-class LocalPixelStreamer;
-class DisplayGroupManager;
-class ContentWindowManager;
-class DockPixelStreamer;
+class PDFContent;
 
-class LocalPixelStreamerManager : public QObject
+class PDFInteractionDelegate : public ZoomInteractionDelegate
 {
-Q_OBJECT
+    Q_OBJECT
 
 public:
-    LocalPixelStreamerManager(DisplayGroupManager *displayGroupManager);
+    PDFInteractionDelegate(ContentWindowManager *cwm);
 
-    bool createWebBrowser(QString uri, QString url);
-
-    bool isDockOpen();
-    void openDockAt(QPointF pos);
-    DockPixelStreamer* getDockInstance();
-
-    void clear();
-
-public slots:
-
-    void removePixelStreamer(QString uri);
+    virtual void tap(QTapGesture *gesture);
+    virtual void swipe(QSwipeGesture *gesture);
 
 private:
-
-    // all existing objects
-    std::map<QString, boost::shared_ptr<LocalPixelStreamer> > map_;
-
-    // To connect new LocalPixelStreamers
-    DisplayGroupManager *displayGroupManager_;
-
-    void setWindowManagerPosition(boost::shared_ptr<ContentWindowManager> cwm, QPointF pos);
-    void bindPixelStreamerInteraction(LocalPixelStreamer* streamer);
+    PDFContent* getPDFContent();
 };
 
-#endif // LOCALPIXELSTREAMERMANAGER_H
+#endif // PDFINTERACTIONDELEGATE_H

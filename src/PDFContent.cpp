@@ -37,49 +37,59 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef LOCALPIXELSTREAMERMANAGER_H
-#define LOCALPIXELSTREAMERMANAGER_H
+#include "PDFContent.h"
+#include "main.h"
+#include <boost/serialization/export.hpp>
 
-#include <map>
-#include <boost/shared_ptr.hpp>
-#include <QMutex>
-#include <QObject>
-#include <QPointF>
+BOOST_CLASS_EXPORT_GUID(PDFContent, "PDFContent")
 
-class LocalPixelStreamer;
-class DisplayGroupManager;
-class ContentWindowManager;
-class DockPixelStreamer;
-
-class LocalPixelStreamerManager : public QObject
+CONTENT_TYPE PDFContent::getType()
 {
-Q_OBJECT
+    return CONTENT_TYPE_PDF;
+}
 
-public:
-    LocalPixelStreamerManager(DisplayGroupManager *displayGroupManager);
+const QStringList& PDFContent::getSupportedExtensions()
+{
+    static QStringList extensions;
 
-    bool createWebBrowser(QString uri, QString url);
+    if (extensions.empty())
+    {
+        extensions << "pdf";
+    }
 
-    bool isDockOpen();
-    void openDockAt(QPointF pos);
-    DockPixelStreamer* getDockInstance();
+    return extensions;
+}
 
-    void clear();
+void PDFContent::setPageCount(int count)
+{
+    pageCount_ = count;
+}
 
-public slots:
+void PDFContent::nextPage()
+{
+    if (pageNumber_ < pageCount_-1)
+    {
+        ++pageNumber_;
+        emit(pageChanged());
+    }
+}
 
-    void removePixelStreamer(QString uri);
+void PDFContent::previousPage()
+{
+    if (pageNumber_ > 0)
+    {
+        --pageNumber_;
+        emit(pageChanged());
+    }
+}
 
-private:
+void PDFContent::getFactoryObjectDimensions(int &width, int &height)
+{
+    g_mainWindow->getGLWindow()->getPDFFactory().getObject(getURI())->getDimensions(width, height);
+}
 
-    // all existing objects
-    std::map<QString, boost::shared_ptr<LocalPixelStreamer> > map_;
-
-    // To connect new LocalPixelStreamers
-    DisplayGroupManager *displayGroupManager_;
-
-    void setWindowManagerPosition(boost::shared_ptr<ContentWindowManager> cwm, QPointF pos);
-    void bindPixelStreamerInteraction(LocalPixelStreamer* streamer);
-};
-
-#endif // LOCALPIXELSTREAMERMANAGER_H
+void PDFContent::renderFactoryObject(float tX, float tY, float tW, float tH)
+{
+    g_mainWindow->getGLWindow()->getPDFFactory().getObject(getURI())->setPage(pageNumber_);
+    g_mainWindow->getGLWindow()->getPDFFactory().getObject(getURI())->render(tX, tY, tW, tH);
+}

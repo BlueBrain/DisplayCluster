@@ -46,8 +46,6 @@
 #include "MovieContent.h"
 #include "main.h"
 
-#include "PixelStreamSegmentJpegCompressor.h"
-
 #define DOCK_UNIQUE_URI "menu"
 
 namespace
@@ -79,11 +77,9 @@ QString DockPixelStreamer::getUniqueURI()
     return QString(DOCK_UNIQUE_URI);
 }
 
-DockPixelStreamer::DockPixelStreamer(DisplayGroupManager *displayGroupManager)
-    : LocalPixelStreamer(displayGroupManager, QString(DOCK_UNIQUE_URI))
+DockPixelStreamer::DockPixelStreamer()
+    : LocalPixelStreamer(QString(DOCK_UNIQUE_URI))
 {
-    connect(this, SIGNAL(close(QString)), displayGroupManager, SLOT(deletePixelStream(QString)), Qt::QueuedConnection);
-
     av_register_all();
 
     flow_ = new PictureFlow;
@@ -150,6 +146,11 @@ void DockPixelStreamer::updateInteractionState(InteractionState interactionState
     }
 }
 
+QSize DockPixelStreamer::size() const
+{
+    return flow_->size();
+}
+
 
 void DockPixelStreamer::open()
 {
@@ -168,7 +169,7 @@ void DockPixelStreamer::onItem()
         {
             g_displayGroupManager->loadStateXMLFile( source.toStdString( ));
 
-            emit(close(getUniqueURI()));
+            emit(streamClosed(getUniqueURI()));
         }
         else {
             boost::shared_ptr< Content > c = ContentFactory::getContent( source );
@@ -176,9 +177,15 @@ void DockPixelStreamer::onItem()
             {
                 boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
                 g_displayGroupManager->addContentWindowManager( cwm );
-                cwm->adjustSize( SIZE_1TO1 );
+                cwm->adjustSize( SIZE_1TO1 ); // TODO Remove this when content dimensions request is no longer needed
 
-                emit(close(getUniqueURI()));
+                // Center the content where the dock is
+                boost::shared_ptr<ContentWindowManager> dockCwm = g_displayGroupManager->getContentWindowManager(getUniqueURI(), CONTENT_TYPE_PIXEL_STREAM);
+                double dockX, dockY;
+                dockCwm->getPosition(dockX, dockY);
+                cwm->centerPositionAround(dockX, dockY, true);
+
+                emit(streamClosed(getUniqueURI()));
             }
         }
     }
@@ -193,8 +200,8 @@ void DockPixelStreamer::update(const QImage& image)
     PixelStreamSegment segment;
     segment.parameters = makeSegmentHeader();
 
-    // TODO remove this crappy compression when merging with Daniel's no-compression codebase
-    computeSegmentJpeg(image, segment);
+    segment.imageData = QByteArray::fromRawData((const char*)image.bits(), image.byteCount());
+    segment.imageData.detach();
 
     emit segmentUpdated(uri_, segment);
 }
@@ -206,6 +213,7 @@ PixelStreamSegmentParameters DockPixelStreamer::makeSegmentHeader()
     parameters.totalWidth = flow_->size().width();
     parameters.height = parameters.totalHeight;
     parameters.width = parameters.totalWidth;
+    parameters.compressed = false;
     return parameters;
 }
 

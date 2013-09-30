@@ -80,7 +80,6 @@ class SVG : public FactoryObject {
         GLuint textureId_;
 
         void generateTexture(QRectF screenRect, QRectF fullRect, float tX, float tY, float tW, float tH);
-        QRectF getProjectedPixelRect(bool onScreenOnly);
 };
 
 #endif

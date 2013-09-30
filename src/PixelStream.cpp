@@ -45,6 +45,8 @@ PixelStream::PixelStream(QString uri)
     : uri_(uri)
     , width_(0)
     , height_ (0)
+    , segmentCount_(0)
+    , changeViewDimensionsRequested_(false)
 {
 
 }
@@ -143,6 +145,16 @@ void PixelStream::insertSegment(PixelStreamSegment segment)
 {
     QMutexLocker locker(&segmentsMutex_);
 
+    // Clear all the buffers if the number of segments has changed
+    if (segment.parameters.segmentCount != segmentCount_)
+    {
+        segmentCount_ = segment.parameters.segmentCount;
+
+        segments_.clear();
+        segmentRenderers_.clear();
+        pixelStreamParameters_.clear();
+    }
+
     // update total dimensions if we have non-blank parameters
     if(segment.parameters.totalWidth != 0 && segment.parameters.totalHeight != 0)
     {
@@ -183,6 +195,13 @@ void PixelStream::insertSegment(PixelStreamSegment segment)
 
             // drop the segment
             return;
+        }
+    }
+    else
+    {
+        if (segment.parameters.requestViewAdjustment)
+        {
+            changeViewDimensionsRequested_ = true;
         }
     }
 
@@ -364,13 +383,26 @@ void PixelStream::updateSegmentRenderers()
         // auto texture uploading depending on synchronous setting
         segmentRenderers_[sourceIndex]->setAutoUpdateTexture(!enableStreamingSynchronization);
 
-        bool success = segmentRenderers_[sourceIndex]->setImageData(segments[i].imageData);
+        bool success = segmentRenderers_[sourceIndex]->setImageData(segments[i].imageData, segments[i].parameters.compressed,
+                                                                    segments[i].parameters.width, segments[i].parameters.height);
 
         if(success)
         {
             updateStatistics(sourceIndex);
         }
     }
+}
+
+bool PixelStream::changeViewDimensionsRequested()
+{
+    QMutexLocker locker(&segmentsMutex_);
+
+    if (changeViewDimensionsRequested_)
+    {
+        changeViewDimensionsRequested_ = false;
+        return true;
+    }
+    return false;
 }
 
 bool PixelStream::isSegmentVisible(PixelStreamSegmentParameters parameters)

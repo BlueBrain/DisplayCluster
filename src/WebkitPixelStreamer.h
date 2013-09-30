@@ -43,6 +43,7 @@
 #include "LocalPixelStreamer.h"
 #include <QString>
 #include <QImage>
+#include <QMutex>
 
 class QWebView;
 class QTimer;
@@ -53,8 +54,10 @@ class WebkitPixelStreamer : public LocalPixelStreamer
     Q_OBJECT
 
 public:
-    WebkitPixelStreamer(DisplayGroupManager* displayGroupManager, QString uri);
+    WebkitPixelStreamer(QString uri);
     ~WebkitPixelStreamer();
+
+    virtual QSize size() const;
 
     void setUrl(QString url);
 
@@ -67,6 +70,7 @@ private:
 
     QWebView* webView_;
     QTimer* timer_;
+    QMutex mutex_;
     int frameIndex_;
 
     QImage image_;

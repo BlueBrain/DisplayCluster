@@ -37,49 +37,48 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef LOCALPIXELSTREAMERMANAGER_H
-#define LOCALPIXELSTREAMERMANAGER_H
+#ifndef PDF_H
+#define PDF_H
 
-#include <map>
-#include <boost/shared_ptr.hpp>
-#include <QMutex>
-#include <QObject>
-#include <QPointF>
+#include "FactoryObject.h"
+#include <QString>
+#include <QGLFramebufferObject>
 
-class LocalPixelStreamer;
-class DisplayGroupManager;
-class ContentWindowManager;
-class DockPixelStreamer;
+namespace Poppler {
+    class Document;
+    class Page;
+}
 
-class LocalPixelStreamerManager : public QObject
+class PDF : public FactoryObject
 {
-Q_OBJECT
-
 public:
-    LocalPixelStreamerManager(DisplayGroupManager *displayGroupManager);
+    PDF(QString uri);
+    ~PDF();
 
-    bool createWebBrowser(QString uri, QString url);
-
-    bool isDockOpen();
-    void openDockAt(QPointF pos);
-    DockPixelStreamer* getDockInstance();
-
-    void clear();
-
-public slots:
-
-    void removePixelStreamer(QString uri);
+    void getDimensions(int &width, int &height) const;
+    void render(float tX, float tY, float tW, float tH);
+    void setPage(int pageNumber);
+    int getPageCount() const;
 
 private:
 
-    // all existing objects
-    std::map<QString, boost::shared_ptr<LocalPixelStreamer> > map_;
+    // document location
+    QString uri_;
 
-    // To connect new LocalPixelStreamers
-    DisplayGroupManager *displayGroupManager_;
+    Poppler::Document* pdfDoc_;
+    Poppler::Page* pdfPage_;
+    int pdfPageNumber;
 
-    void setWindowManagerPosition(boost::shared_ptr<ContentWindowManager> cwm, QPointF pos);
-    void bindPixelStreamerInteraction(LocalPixelStreamer* streamer);
+    // texture information
+    QRect textureRect_;
+    GLuint textureId_;
+
+    void openDocument(QString filename);
+    void closeDocument();
+    void closePage();
+
+    void generateTexture(QRectF screenRect, QRectF fullRect, float tX, float tY, float tW, float tH);
+    void deleteTexture();
 };
 
-#endif // LOCALPIXELSTREAMERMANAGER_H
+#endif // PDF_H

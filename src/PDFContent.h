@@ -37,49 +37,47 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef LOCALPIXELSTREAMERMANAGER_H
-#define LOCALPIXELSTREAMERMANAGER_H
+#ifndef PDFCONTENT_H
+#define PDFCONTENT_H
 
-#include <map>
-#include <boost/shared_ptr.hpp>
-#include <QMutex>
-#include <QObject>
-#include <QPointF>
+#include "Content.h"
+#include <boost/serialization/base_object.hpp>
 
-class LocalPixelStreamer;
-class DisplayGroupManager;
-class ContentWindowManager;
-class DockPixelStreamer;
-
-class LocalPixelStreamerManager : public QObject
+class PDFContent : public Content
 {
-Q_OBJECT
+    Q_OBJECT
 
 public:
-    LocalPixelStreamerManager(DisplayGroupManager *displayGroupManager);
+    PDFContent(QString uri = "") : Content(uri), pageNumber_(0), pageCount_(0) { }
 
-    bool createWebBrowser(QString uri, QString url);
+    CONTENT_TYPE getType();
 
-    bool isDockOpen();
-    void openDockAt(QPointF pos);
-    DockPixelStreamer* getDockInstance();
+    void getFactoryObjectDimensions(int &width, int &height);
 
-    void clear();
+    static const QStringList& getSupportedExtensions();
 
-public slots:
+    void setPageCount(int count);
+    void nextPage();
+    void previousPage();
 
-    void removePixelStreamer(QString uri);
+signals:
+    void pageChanged();
 
 private:
+    friend class boost::serialization::access;
 
-    // all existing objects
-    std::map<QString, boost::shared_ptr<LocalPixelStreamer> > map_;
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int)
+    {
+        // serialize base class information
+        ar & boost::serialization::base_object<Content>(*this);
+        ar & pageNumber_;
+    }
 
-    // To connect new LocalPixelStreamers
-    DisplayGroupManager *displayGroupManager_;
+    int pageNumber_;
+    int pageCount_;
 
-    void setWindowManagerPosition(boost::shared_ptr<ContentWindowManager> cwm, QPointF pos);
-    void bindPixelStreamerInteraction(LocalPixelStreamer* streamer);
+    void renderFactoryObject(float tX, float tY, float tW, float tH);
 };
 
-#endif // LOCALPIXELSTREAMERMANAGER_H
+#endif // PDFCONTENT_H

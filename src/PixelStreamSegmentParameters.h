@@ -67,6 +67,15 @@ struct PixelStreamSegmentParameters {
     int32_t totalWidth;
     int32_t totalHeight;
 
+    // Number of segments in the stream
+    int32_t segmentCount;
+
+    // Sender requests the view dimensions to be adjusted
+    bool requestViewAdjustment;
+
+    // Is the image raw pixel data or compressed in jpeg format
+    bool compressed;
+
     // Default constructor
     PixelStreamSegmentParameters()
         : sourceIndex(0)
@@ -77,6 +86,9 @@ struct PixelStreamSegmentParameters {
         , height(0)
         , totalWidth(0)
         , totalHeight(0)
+        , segmentCount(0)
+        , requestViewAdjustment(false)
+        , compressed(true)
     {
     }
 
@@ -93,6 +105,9 @@ struct PixelStreamSegmentParameters {
         ar & height;
         ar & totalWidth;
         ar & totalHeight;
+        ar & segmentCount;
+        ar & requestViewAdjustment;
+        ar & compressed;
     }
 };
 
