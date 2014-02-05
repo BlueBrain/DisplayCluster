@@ -48,7 +48,8 @@
 WebbrowserCommandHandler::WebbrowserCommandHandler(DisplayGroupManager& displayGroupManager,
                                                    PixelStreamerLauncher& pixelStreamLauncher,
                                                    const QString& defaultURL)
-    : displayGroupManager_(displayGroupManager), defaultURL_(defaultURL)
+    : displayGroupManager_(displayGroupManager)
+    , defaultURL_(defaultURL)
 {
     connect(this, SIGNAL(openWebBrowser(QPointF,QSize,QString)),
             &pixelStreamLauncher, SLOT(openWebBrowser(QPointF,QSize,QString)));
@@ -61,10 +62,8 @@ CommandType WebbrowserCommandHandler::getType() const
 
 void WebbrowserCommandHandler::handle(const Command& command, const QString& senderUri)
 {
-    QString url;
-    if (command.getArguments().isEmpty())
-        url = command.getArguments();
-    else
+    QString url = command.getArguments();
+    if (url.isEmpty())
         url = defaultURL_;
 
     QPointF position;
