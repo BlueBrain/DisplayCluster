@@ -61,20 +61,19 @@ public:
      */
     const QString& getDockStartDir() const;
 
-
     /**
      * @brief Get the URL used as start page when opening a Web Browser.
      * @return The URL defined in the configuration file, or a default value if
      * none is found.
      */
-    const QString& getWebBrowserURL() const;
+    const QString& getWebBrowserDefaultURL() const;
 
 private:
     void loadMasterSettings();
 
     QString dockStartDir_;
 
-    QString webBrowserURL_;
+    QString webBrowserDefaultURL_;
 };
 
 #endif // MASTERCONFIGURATION_H

@@ -120,7 +120,7 @@ BOOST_AUTO_TEST_CASE( test_master_configuration )
     MasterConfiguration config(CONFIG_TEST_FILENAME, options);
 
     BOOST_CHECK_EQUAL( config.getDockStartDir().toStdString(), CONFIG_EXPECTED_DOCK_DIR );
-    BOOST_CHECK_EQUAL( config.getWebBrowserURL().toStdString(), CONFIG_EXPECTED_URL );
+    BOOST_CHECK_EQUAL( config.getWebBrowserDefaultURL().toStdString(), CONFIG_EXPECTED_URL );
 }
 
 BOOST_AUTO_TEST_CASE( test_master_configuration_default_values )
@@ -130,7 +130,7 @@ BOOST_AUTO_TEST_CASE( test_master_configuration_default_values )
     MasterConfiguration config(CONFIG_TEST_FILENAME_II, options);
 
     BOOST_CHECK_EQUAL( config.getDockStartDir().toStdString(), QDir::homePath().toStdString() );
-    BOOST_CHECK_EQUAL( config.getWebBrowserURL().toStdString(), CONFIG_EXPECTED_DEFAULT_URL );
+    BOOST_CHECK_EQUAL( config.getWebBrowserDefaultURL().toStdString(), CONFIG_EXPECTED_DEFAULT_URL );
 }
 
 BOOST_AUTO_TEST_CASE( test_save_configuration )

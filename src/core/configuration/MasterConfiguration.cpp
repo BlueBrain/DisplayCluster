@@ -71,11 +71,11 @@ void MasterConfiguration::loadMasterSettings()
         dockStartDir_ = QDir::homePath();
 
     //Load web browser start URL
-    query.setQuery("string(/configuration/webbrowser/@url)");
+    query.setQuery("string(/configuration/webbrowser/@defaultURL)");
     if (query.evaluateTo(&queryResult))
-	webBrowserURL_ = queryResult.remove(QRegExp(TRIM_REGEX));
-    if (webBrowserURL_.isEmpty())
-	webBrowserURL_ = DEFAULT_URL;
+        webBrowserDefaultURL_ = queryResult.remove(QRegExp(TRIM_REGEX));
+    if (webBrowserDefaultURL_.isEmpty())
+        webBrowserDefaultURL_ = DEFAULT_URL;
 }
 
 const QString& MasterConfiguration::getDockStartDir() const
@@ -83,7 +83,7 @@ const QString& MasterConfiguration::getDockStartDir() const
     return dockStartDir_;
 }
 
-const QString& MasterConfiguration::getWebBrowserURL() const
+const QString& MasterConfiguration::getWebBrowserDefaultURL() const
 {
-    return webBrowserURL_;
+    return webBrowserDefaultURL_;
 }
