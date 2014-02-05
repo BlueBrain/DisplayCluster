@@ -47,13 +47,19 @@ namespace ut = boost::unit_test;
 #include "Options.h"
 #include "configuration/WallConfiguration.h"
 
+#include <QDir>
+
 #define CONFIG_TEST_FILENAME "./configuration.xml"
+#define CONFIG_TEST_FILENAME_II "./configuration_default.xml"
 
 #define CONFIG_EXPECTED_BACKGROUND "/nfs4/bbp.epfl.ch/visualization/DisplayWall/media/background.png"
 #define CONFIG_EXPECTED_BACKGROUND_COLOR "#242424"
 #define CONFIG_EXPECTED_DOCK_DIR "/nfs4/bbp.epfl.ch/visualization/DisplayWall/media"
 #define CONFIG_EXPECTED_DISPLAY ":0.2"
 #define CONFIG_EXPECTED_HOST_NAME "bbplxviz03i"
+
+#define CONFIG_EXPECTED_URL "http://bbp.epfl.ch"
+#define CONFIG_EXPECTED_DEFAULT_URL "http://www.google.com"
 
 BOOST_GLOBAL_FIXTURE( MinimalGlobalQtApp );
 
@@ -114,6 +120,17 @@ BOOST_AUTO_TEST_CASE( test_master_configuration )
     MasterConfiguration config(CONFIG_TEST_FILENAME, options);
 
     BOOST_CHECK_EQUAL( config.getDockStartDir().toStdString(), CONFIG_EXPECTED_DOCK_DIR );
+    BOOST_CHECK_EQUAL( config.getWebBrowserURL().toStdString(), CONFIG_EXPECTED_URL );
+}
+
+BOOST_AUTO_TEST_CASE( test_master_configuration_default_values )
+{
+    OptionsPtr options(new Options());
+
+    MasterConfiguration config(CONFIG_TEST_FILENAME_II, options);
+
+    BOOST_CHECK_EQUAL( config.getDockStartDir().toStdString(), QDir::homePath().toStdString() );
+    BOOST_CHECK_EQUAL( config.getWebBrowserURL().toStdString(), CONFIG_EXPECTED_DEFAULT_URL );
 }
 
 BOOST_AUTO_TEST_CASE( test_save_configuration )
