@@ -59,13 +59,18 @@ class WebbrowserCommandHandler : public QObject, public AbstractCommandHandler
 public:
     /** Constructor */
     WebbrowserCommandHandler(DisplayGroupManager& displayGroupManager,
-                             PixelStreamerLauncher& pixelStreamLauncher);
+                             PixelStreamerLauncher& pixelStreamLauncher,
+                             const QString& defaultURL);
 
     /** Get the type of commands handled by the implementation. */
     virtual CommandType getType() const;
 
     /**
-     * Handle a webbrowswe Command.
+     * Handles an open web browser Command. It uses the command arguments as the
+     * initial web browser URL. If no URL is provided with the command a default
+     * value is used. Normally the default value is obtained from a configuration
+     * file and passed to this handler in its constructor.
+     *
      * @param command The Command to handle.
      * @param senderUri The identifier of the sender (optional).
      */
@@ -77,7 +82,7 @@ signals:
 
 private:
     DisplayGroupManager& displayGroupManager_;
-
+    const QString defaultURL_;
 };
 
 #endif // WEBBROWSERCOMMANDHANDLER_H

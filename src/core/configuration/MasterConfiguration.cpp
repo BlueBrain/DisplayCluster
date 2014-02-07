@@ -43,6 +43,9 @@
 
 #include "log.h"
 
+#define TRIM_REGEX "[\\n\\t\\r]"
+#define DEFAULT_URL "http://www.google.com";
+
 MasterConfiguration::MasterConfiguration(const QString &filename, OptionsPtr options)
     : Configuration(filename, options)
 {
@@ -63,12 +66,24 @@ void MasterConfiguration::loadMasterSettings()
     // dock start directory
     query.setQuery("string(/configuration/dock/@directory)");
     if (query.evaluateTo(&queryResult))
-        dockStartDir_ = queryResult.remove(QRegExp("[\\n\\t\\r]"));
-    if( dockStartDir_.isEmpty( ))
+        dockStartDir_ = queryResult.remove(QRegExp(TRIM_REGEX));
+    if (dockStartDir_.isEmpty())
         dockStartDir_ = QDir::homePath();
+
+    //Load web browser start URL
+    query.setQuery("string(/configuration/webbrowser/@defaultURL)");
+    if (query.evaluateTo(&queryResult))
+        webBrowserDefaultURL_ = queryResult.remove(QRegExp(TRIM_REGEX));
+    if (webBrowserDefaultURL_.isEmpty())
+        webBrowserDefaultURL_ = DEFAULT_URL;
 }
 
-const QString &MasterConfiguration::getDockStartDir() const
+const QString& MasterConfiguration::getDockStartDir() const
 {
     return dockStartDir_;
+}
+
+const QString& MasterConfiguration::getWebBrowserDefaultURL() const
+{
+    return webBrowserDefaultURL_;
 }

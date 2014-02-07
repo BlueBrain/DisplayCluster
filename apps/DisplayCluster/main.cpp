@@ -179,8 +179,13 @@ int main(int argc, char * argv[])
         CommandHandler& handler = networkListener->getCommandHandler();
         handler.registerCommandHandler(new FileCommandHandler(g_displayGroupManager));
         handler.registerCommandHandler(new SessionCommandHandler(*g_displayGroupManager));
-        handler.registerCommandHandler(new WebbrowserCommandHandler(*g_displayGroupManager,
-                                                                    *pixelStreamerLauncher));
+        
+        const QString& url = static_cast<MasterConfiguration*>(g_configuration)
+                                                                 ->getWebBrowserDefaultURL();
+        handler.registerCommandHandler(new WebbrowserCommandHandler(
+                                           *g_displayGroupManager,
+                                           *pixelStreamerLauncher,
+                                           url));
     }
 
     // wait for render comms to be ready for receiving and rendering background

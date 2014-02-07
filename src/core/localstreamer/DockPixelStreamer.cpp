@@ -60,8 +60,6 @@
 #define WEBBROWSER_ICON ":/img/browser-icon.png"
 #define CLEARALL_ICON ":/img/clearall-icon.png"
 
-#define STARTUP_PAGE "http://www.google.com"
-
 QString DockPixelStreamer::getUniqueURI()
 {
     return "Dock";
@@ -240,7 +238,7 @@ void DockPixelStreamer::createToolbar(const unsigned int width, const unsigned i
 {
     toolbar_ = new DockToolbar(QSize(width, height));
 
-    Command webbrowserCommand(COMMAND_TYPE_WEBBROWSER, STARTUP_PAGE);
+    Command webbrowserCommand(COMMAND_TYPE_WEBBROWSER, "");
     toolbar_->addButton( new ToolbarButton( "Webbrowser", QImage(WEBBROWSER_ICON),
                                             webbrowserCommand.getCommand() ));
 
