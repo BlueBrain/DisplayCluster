@@ -39,7 +39,11 @@
 
 #include "FpsCounter.h"
 
-#define HISTORY_SIZE  30
+#if (QT_VERSION >= QT_VERSION_CHECK(4, 7, 0))
+#  define HISTORY_SIZE  30
+#else
+#  define HISTORY_SIZE  300
+#endif
 
 FpsCounter::FpsCounter()
 {
@@ -61,7 +65,11 @@ float FpsCounter::getFps() const
     if(history_.empty())
         return 0.f;
 
+#if (QT_VERSION >= QT_VERSION_CHECK(4, 7, 0))
     return (float)history_.size() / (float)history_.front().msecsTo(history_.back()) * 1000.;
+#else
+    return (float)history_.size() / (float)history_.front().secsTo(history_.back());
+#endif
 }
 
 QString FpsCounter::toString() const
