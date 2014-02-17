@@ -40,6 +40,8 @@
 #ifndef MASTERCONFIGURATION_H
 #define MASTERCONFIGURATION_H
 
+#include <QtXmlPatterns>
+
 #include "Configuration.h"
 /**
  * @brief The MasterConfiguration class manages all the parameters needed
@@ -70,6 +72,8 @@ public:
 
 private:
     void loadMasterSettings();
+    void loadDockStartDirectory(QXmlQuery& query);
+    void loadWebBrowserStartURL(QXmlQuery& query);
 
     QString dockStartDir_;
 

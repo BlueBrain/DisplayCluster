@@ -180,8 +180,7 @@ int main(int argc, char * argv[])
         handler.registerCommandHandler(new FileCommandHandler(g_displayGroupManager));
         handler.registerCommandHandler(new SessionCommandHandler(*g_displayGroupManager));
         
-        const QString& url = static_cast<MasterConfiguration*>(g_configuration)
-                                                                 ->getWebBrowserDefaultURL();
+        const QString& url = static_cast<MasterConfiguration*>(g_configuration)->getWebBrowserDefaultURL();
         handler.registerCommandHandler(new WebbrowserCommandHandler(
                                            *g_displayGroupManager,
                                            *pixelStreamerLauncher,

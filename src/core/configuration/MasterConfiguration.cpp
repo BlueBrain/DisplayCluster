@@ -39,8 +39,6 @@
 
 #include "MasterConfiguration.h"
 
-#include <QtXmlPatterns>
-
 #include "log.h"
 
 #define TRIM_REGEX "[\\n\\t\\r]"
@@ -61,16 +59,26 @@ void MasterConfiguration::loadMasterSettings()
         exit(-1);
     }
 
+    loadDockStartDirectory(query);
+    loadWebBrowserStartURL(query);
+
+}
+
+void MasterConfiguration::loadDockStartDirectory(QXmlQuery& query)
+{
     QString queryResult;
 
-    // dock start directory
     query.setQuery("string(/configuration/dock/@directory)");
     if (query.evaluateTo(&queryResult))
         dockStartDir_ = queryResult.remove(QRegExp(TRIM_REGEX));
     if (dockStartDir_.isEmpty())
         dockStartDir_ = QDir::homePath();
+}
 
-    //Load web browser start URL
+void MasterConfiguration::loadWebBrowserStartURL(QXmlQuery& query)
+{
+    QString queryResult;
+
     query.setQuery("string(/configuration/webbrowser/@defaultURL)");
     if (query.evaluateTo(&queryResult))
         webBrowserDefaultURL_ = queryResult.remove(QRegExp(TRIM_REGEX));
