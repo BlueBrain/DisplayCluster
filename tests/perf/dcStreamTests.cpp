@@ -39,6 +39,7 @@
 
 #define BOOST_TEST_MODULE Socket
 #include <boost/test/unit_test.hpp>
+#include <boost/timer/timer.hpp>
 namespace ut = boost::unit_test;
 
 #include "DisplayGroupManager.h"
@@ -46,6 +47,8 @@ namespace ut = boost::unit_test;
 #include "NetworkListener.h"
 #include "configuration/MasterConfiguration.h"
 #include "dcstream/Stream.h"
+
+#define NANO_SECS 1000000000.f
 
 // Tests local throughput of the streaming library by sending raw as well as
 // blank and random images through dc::Stream. Baseline test for best-case
@@ -64,7 +67,7 @@ class DCThread : public QThread
 {
     void run()
     {
-        QElapsedTimer timer;
+        boost::timer::cpu_timer timer;
         uint8_t* pixels = new uint8_t[ NBYTES ];
         ::memset( pixels, 0, NBYTES );
         dc::ImageWrapper image( pixels, WIDTH, HEIGHT, dc::RGBA );
@@ -79,32 +82,32 @@ class DCThread : public QThread
             BOOST_CHECK( stream.send( image ));
             BOOST_CHECK( stream.finishFrame( ));
         }
-        float time = timer.elapsed() / 1000.f;
+        float time = (float)timer.elapsed().wall / NANO_SECS;
         std::cout << "raw " << NPIXELS / float(1024*1024) / time * NIMAGES
                   << " megapixel/s (" << NIMAGES / time << " FPS)" << std::endl;
 
 
         image.compressionPolicy = dc::COMPRESSION_ON;
-        timer.restart();
+        timer.start();
         for( size_t i = 0; i < NIMAGES; ++i )
         {
             BOOST_CHECK( stream.send( image ));
             BOOST_CHECK( stream.finishFrame( ));
         }
-        time = timer.elapsed() / 1000.f;
+        time = (float)timer.elapsed().wall / NANO_SECS;
         std::cout << "blk " << NPIXELS / float(1024*1024) / time * NIMAGES
                   << " megapixel/s (" << NIMAGES / time << " FPS)"
                   << std::endl;
 
         for( size_t i = 0; i < NBYTES; ++i )
             pixels[i] = uint8_t( qrand( ));
-        timer.restart();
+        timer.start();
         for( size_t i = 0; i < NIMAGES; ++i )
         {
             BOOST_CHECK( stream.send( image ));
             BOOST_CHECK( stream.finishFrame( ));
         }
-        time = timer.elapsed() / 1000.f;
+        time = (float)timer.elapsed().wall / NANO_SECS;
         std::cout << "rnd " << NPIXELS / float(1024*1024) / time * NIMAGES
                   << " megapixel/s (" << NIMAGES / time << " FPS)"
                   << std::endl;
