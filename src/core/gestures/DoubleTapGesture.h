@@ -45,20 +45,21 @@
 /**
  * This class defines a doubletap gesture. The doubletap is recognized if two
  * touch points are emitted, the manhattan length between those two points is
- * less than 40 and if the elapsed time between the two touch points is less
- * than 750ms.
+ * less than 40 pixels and if the elapsed time between the two touch points is
+ * less than 500ms.
  * @sa DoubleTapGestureRecognizer
  */
 class DoubleTapGesture : public QGesture
 {
 public:
     /** @sa QGesture */
-    DoubleTapGesture( QObject* parent = 0 ) : QGesture( parent ){}
+    DoubleTapGesture( QObject* parent = 0 )
+        : QGesture( parent ), _position( -1, -1 ) {}
 
-    /** @return the normalized position of the doubletap */
+    /** @return the position on the device in pixels of the doubletap */
     QPointF position() const { return _position; }
 
-    /** Set the normalized position of the doubletap */
+    /** Set the position on the device in pixels  of the doubletap */
     void setPosition( const QPointF& pos ) { _position = pos; }
 
 private:
