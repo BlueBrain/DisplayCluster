@@ -1,5 +1,5 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
 /*                     Daniel Nachbaur <daniel.nachbaur@epfl.ch>     */
 /* All rights reserved.                                              */
 /*                                                                   */
@@ -37,59 +37,72 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DOUBLETAPGESTURERECOGNIZER_H
-#define DOUBLETAPGESTURERECOGNIZER_H
+#ifndef MOCKTOUCHEVENTS_H
+#define MOCKTOUCHEVENTS_H
 
-#include <QPointF>
-#include <QTime>
-#include <QGestureRecognizer>
+#include <QTouchEvent>
 
-class DoubleTapGesture;
+const QSize widgetSize( 400, 400 );
+QMap< int, QTouchEvent::TouchPoint > touchPointMap;
 
-/**
- * Gesture recognizer for a doubletap gesture. The doubletap is recognized
- * within a time period of 750ms.
- */
-class DoubleTapGestureRecognizer : public QGestureRecognizer
+QEvent* createTouchEvent( const int id, const QEvent::Type eventType,
+                          const Qt::TouchPointState state,
+                          const QPointF& normalizedPosition )
 {
-public:
-    /** Construct a new doubletap gesture recognizer object. */
-    DoubleTapGestureRecognizer();
+    const QPoint position( widgetSize.width()  * normalizedPosition.x(),
+                           widgetSize.height() * normalizedPosition.y( ));
 
-    /** @sa QGestureRecognizer::create */
-    virtual QGesture* create( QObject *target );
+    const Qt::TouchPointStates touchPointStates = Qt::TouchPointPrimary | state;
+    QTouchEvent::TouchPoint touchPoint( id );
+    touchPoint.setPressure( 1.0 );
+    touchPoint.setNormalizedPos( normalizedPosition );
+    touchPoint.setPos( position );
+    touchPoint.setScenePos( normalizedPosition );
+    touchPoint.setScreenPos( position );
 
-    /** @sa QGestureRecognizer::recognize */
-    virtual QGestureRecognizer::Result recognize( QGesture* state,
-                                                  QObject* watched,
-                                                  QEvent* event );
+    switch( eventType )
+    {
+    case QEvent::TouchBegin:
+        touchPoint.setStartNormalizedPos( normalizedPosition );
+        touchPoint.setStartPos( touchPoint.pos( ));
+        touchPoint.setStartScreenPos( position );
+        touchPoint.setStartScenePos( touchPoint.scenePos( ));
 
-    /** @sa QGestureRecognizer::reset */
-    virtual void reset( QGesture* state );
+        touchPoint.setLastNormalizedPos( normalizedPosition );
+        touchPoint.setLastPos( touchPoint.pos( ));
+        touchPoint.setLastScreenPos( position );
+        touchPoint.setLastScenePos( touchPoint.scenePos( ));
+        break;
 
-    /**
-     * Installs the doubletap recognizer in the current QApplication.
-     * @sa QGestureRecognizer::registerRecognizer
-     */
-    static void install();
+    case QEvent::TouchUpdate:
+    case QEvent::TouchEnd:
+    {
+        const QTouchEvent::TouchPoint& prevPoint = touchPointMap.value( id );
+        touchPoint.setStartNormalizedPos( prevPoint.startNormalizedPos( ));
+        touchPoint.setStartPos( prevPoint.startPos( ));
+        touchPoint.setStartScreenPos( prevPoint.startScreenPos( ));
+        touchPoint.setStartScenePos( prevPoint.startScenePos( ));
 
-    /**
-     * Uninstalls the doubletap recognizer from the current QApplication.
-     * @sa QGestureRecognizer::unregisterRecognizer
-     */
-    static void uninstall();
+        touchPoint.setLastNormalizedPos( prevPoint.normalizedPos( ));
+        touchPoint.setLastPos( prevPoint.pos( ));
+        touchPoint.setLastScreenPos( prevPoint.screenPos( ));
+        touchPoint.setLastScenePos( prevPoint.scenePos( ));
+        break;
+    }
+    default:
+        ;
+    }
 
-    /** @return the gesture type to be used for gesture handling
-     * @sa QWidget::grabGesture
-     * @sa QGestureEvent::gesture
-     */
-    static Qt::GestureType type();
+    touchPointMap.insert( id, touchPoint );
 
-private:
-    QGestureRecognizer::Result cancel( DoubleTapGesture* gesture );
-    QPointF firstPoint_;
-    QTime firstPointTime_;
-    static Qt::GestureType type_;
-};
+    QEvent* event = new QTouchEvent( eventType, QTouchEvent::TouchScreen,
+                                     Qt::NoModifier, touchPointStates,
+                                     touchPointMap.values( ));
+
+    if( eventType == QEvent::TouchEnd )
+        touchPointMap.remove( id );
+
+    return event;
+}
 
 #endif
