@@ -91,6 +91,8 @@ private:
 };
 }
 
+#define ASYNC_SEND
+
 class DCThread : public QThread
 {
     void run()
@@ -107,8 +109,11 @@ class DCThread : public QThread
         timer.start();
         for( size_t i = 0; i < NIMAGES; ++i )
         {
+#ifdef ASYNC_SEND
+            BOOST_CHECK( stream.asyncSend( image ).get( ));
+#else
             BOOST_CHECK( stream.send( image ));
-            BOOST_CHECK( stream.finishFrame( ));
+#endif
         }
         float time = timer.elapsed() / 1000.f;
         std::cout << "raw " << NPIXELS / float(1024*1024) / time * NIMAGES
@@ -119,8 +124,11 @@ class DCThread : public QThread
         timer.restart();
         for( size_t i = 0; i < NIMAGES; ++i )
         {
+#ifdef ASYNC_SEND
+            BOOST_CHECK( stream.asyncSend( image ).get( ));
+#else
             BOOST_CHECK( stream.send( image ));
-            BOOST_CHECK( stream.finishFrame( ));
+#endif
         }
         time = timer.elapsed() / 1000.f;
         std::cout << "blk " << NPIXELS / float(1024*1024) / time * NIMAGES
@@ -132,8 +140,11 @@ class DCThread : public QThread
         timer.restart();
         for( size_t i = 0; i < NIMAGES; ++i )
         {
+#ifdef ASYNC_SEND
+            BOOST_CHECK( stream.asyncSend( image ).get( ));
+#else
             BOOST_CHECK( stream.send( image ));
-            BOOST_CHECK( stream.finishFrame( ));
+#endif
         }
         time = timer.elapsed() / 1000.f;
         std::cout << "rnd " << NPIXELS / float(1024*1024) / time * NIMAGES
@@ -155,8 +166,8 @@ BOOST_AUTO_TEST_CASE( testSocketConnection )
     g_mpiChannel.reset(new MPIChannel(testSuite.argc, testSuite.argv));
     g_configuration = new MasterConfiguration( "configuration.xml" );
 
-    DisplayGroupManager displayGroup;
-    PixelStreamWindowManager pixelStreamWindowManager( displayGroup );
+    DisplayGroupManagerPtr displayGroup( new DisplayGroupManager);
+    PixelStreamWindowManager pixelStreamWindowManager( *displayGroup );
     NetworkListener listener( pixelStreamWindowManager );
 #ifdef NTHREADS
     QThreadPool::globalInstance()->setMaxThreadCount( NTHREADS );

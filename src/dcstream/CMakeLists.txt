@@ -1,7 +1,9 @@
 
 set(DCSTREAM_LIBRARY_LIBS ${QT_QTCORE_LIBRARY}
                           ${QT_QTNETWORK_LIBRARY}
-                          ${LibJpegTurbo_LIBRARIES})
+                          ${LibJpegTurbo_LIBRARIES}
+                          ${Boost_THREAD_LIBRARY}
+                          ${Boost_SYSTEM_LIBRARY})
 
 set(DCSTREAM_LIBRARY_SRCS
     ../Event.cpp
@@ -10,6 +12,7 @@ set(DCSTREAM_LIBRARY_SRCS
     Socket.cpp
     Stream.cpp
     StreamPrivate.cpp
+    StreamSendWorker.cpp
     ImageWrapper.cpp
     ImageSegmenter.cpp
     ImageJpegCompressor.cpp

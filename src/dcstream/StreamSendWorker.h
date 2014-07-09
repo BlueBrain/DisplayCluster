@@ -1,7 +1,6 @@
 /*********************************************************************/
 /* Copyright (c) 2013-2014, EPFL/Blue Brain Project                  */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
-/*                     Stefan.Eilemann@epfl.ch                       */
+/*                     Daniel.Nachbaur@epfl.ch                       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -38,96 +37,42 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DCSTREAMPRIVATE_H
-#define DCSTREAMPRIVATE_H
+#ifndef DCSTREAMSENDWORKER_H
+#define DCSTREAMSENDWORKER_H
 
-#include "Event.h"
-#include "MessageHeader.h"
-#include "ImageSegmenter.h"
-#include "Socket.h" // member
-#include "Stream.h" // Stream::Future
-
-#include <QMutex>
-#include <string>
-
-class QString;
+#include "StreamPrivate.h"
+#include <deque>
 
 namespace dc
 {
 
-struct PixelStreamSegment;
-struct PixelStreamSegmentParameters;
-class StreamSendWorker;
+typedef boost::promise< bool > Promise;
+typedef boost::shared_ptr< Promise > PromisePtr;
 
 /**
- * Private implementation for the Stream class.
+ *
  */
-class StreamPrivate
+class StreamSendWorker
 {
 public:
     /**
-     * Create a new stream and open a new connection to the DisplayCluster.
      *
-     * It can be a hostname like "localhost" or an IP in string format,
-     * e.g. "192.168.1.83" This method must be called by all Streams sharing a
-     * common identifier before any of them starts sending images.
-     *
-     * @param name the unique stream name
-     * @param address Address of the target DisplayCluster instance.
-     * @return true if the connection could be established
      */
-    StreamPrivate( const std::string& name, const std::string& address );
+    StreamSendWorker( StreamPrivate* stream );
 
-    ~StreamPrivate();
+    void sendImage( PromisePtr promise, const ImageWrapper& image );
 
-    /** The stream identifier. */
-    const std::string name_;
+    void run();
 
-    /** The communication socket instance */
-    Socket dcSocket_;
-
-    /** The image segmenter */
-    ImageSegmenter imageSegmenter_;
-
-    /** Has a successful event registration reply been received */
-    bool registeredForEvents_;
-
-    /**
-     * Close the stream.
-     * @return true if the connection could be terminated or the Stream was not connected, false otherwise
-     */
-    bool close();
-
-    /** @sa Stream::send */
-    bool send( const ImageWrapper& image );
-
-    /** @sa Stream::asyncSend */
-    Stream::Future asyncSend(const ImageWrapper& image);
-
-    /** @sa Stream::finishFrame */
-    bool finishFrame();
-
-    /**
-     * Send an existing PixelStreamSegment via the DcSocket.
-     * @param socket The DcSocket instance
-     * @param segment A pixel stream segement with valid parameters and imageData
-     * @param senderName Used to identifiy the sender on the receiver side
-     * @return true if the message could be sent
-     */
-    bool sendPixelStreamSegment(const PixelStreamSegment& segment);
-
-    /**
-     * Send a command to the wall
-     * @param command A command string formatted by the Command class.
-     * @return true if the request could be sent, false otherwise.
-     */
-    bool sendCommand(const QString& command);
-
-    QMutex sendLock_;
+    void stop();
 
 private:
-    boost::thread* sendThread_;
-    StreamSendWorker* sendWorker_;
+    StreamPrivate* parent_;
+    typedef std::pair< PromisePtr, ImageWrapper > Request;
+    std::deque< Request > requests_;
+    boost::mutex _mutex;
+    boost::condition_variable _cond;
+    bool running_;
 };
 
 }

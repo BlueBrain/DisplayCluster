@@ -39,7 +39,7 @@ else:
 # form the MPI host list
 
 # rank 0 is always on localhost
-hostList = ['bbplxviz03i']
+hostList = ['localhost']
 
 # configuration.xml gives the rest of the hosts
 try:

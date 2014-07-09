@@ -1,7 +1,6 @@
 /*********************************************************************/
 /* Copyright (c) 2013-2014, EPFL/Blue Brain Project                  */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
-/*                     Stefan.Eilemann@epfl.ch                       */
+/*                     Daniel.Nachbaur@epfl.ch                       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -38,97 +37,47 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DCSTREAMPRIVATE_H
-#define DCSTREAMPRIVATE_H
+#include "StreamSendWorker.h"
 
-#include "Event.h"
-#include "MessageHeader.h"
-#include "ImageSegmenter.h"
-#include "Socket.h" // member
-#include "Stream.h" // Stream::Future
-
-#include <QMutex>
-#include <string>
-
-class QString;
+#include "StreamPrivate.h"
 
 namespace dc
 {
 
-struct PixelStreamSegment;
-struct PixelStreamSegmentParameters;
-class StreamSendWorker;
+StreamSendWorker::StreamSendWorker( StreamPrivate* stream )
+    : parent_( stream )
+    , running_( true )
+{}
 
-/**
- * Private implementation for the Stream class.
- */
-class StreamPrivate
+void StreamSendWorker::run()
 {
-public:
-    /**
-     * Create a new stream and open a new connection to the DisplayCluster.
-     *
-     * It can be a hostname like "localhost" or an IP in string format,
-     * e.g. "192.168.1.83" This method must be called by all Streams sharing a
-     * common identifier before any of them starts sending images.
-     *
-     * @param name the unique stream name
-     * @param address Address of the target DisplayCluster instance.
-     * @return true if the connection could be established
-     */
-    StreamPrivate( const std::string& name, const std::string& address );
+    while( true )
+    {
+        boost::mutex::scoped_lock lock(_mutex);
+        while( requests_.empty() && running_ )
+            _cond.wait( lock );
+        if( !running_ )
+            break;
 
-    ~StreamPrivate();
+        const Request& request = requests_.back();
+        request.first->set_value( parent_->send( request.second ) && parent_->finishFrame( ));
+        requests_.pop_back();
+    }
+}
 
-    /** The stream identifier. */
-    const std::string name_;
+void StreamSendWorker::stop()
+{
+    boost::mutex::scoped_lock lock(_mutex);
+    running_ = false;
+    _cond.notify_all();
+}
 
-    /** The communication socket instance */
-    Socket dcSocket_;
-
-    /** The image segmenter */
-    ImageSegmenter imageSegmenter_;
-
-    /** Has a successful event registration reply been received */
-    bool registeredForEvents_;
-
-    /**
-     * Close the stream.
-     * @return true if the connection could be terminated or the Stream was not connected, false otherwise
-     */
-    bool close();
-
-    /** @sa Stream::send */
-    bool send( const ImageWrapper& image );
-
-    /** @sa Stream::asyncSend */
-    Stream::Future asyncSend(const ImageWrapper& image);
-
-    /** @sa Stream::finishFrame */
-    bool finishFrame();
-
-    /**
-     * Send an existing PixelStreamSegment via the DcSocket.
-     * @param socket The DcSocket instance
-     * @param segment A pixel stream segement with valid parameters and imageData
-     * @param senderName Used to identifiy the sender on the receiver side
-     * @return true if the message could be sent
-     */
-    bool sendPixelStreamSegment(const PixelStreamSegment& segment);
-
-    /**
-     * Send a command to the wall
-     * @param command A command string formatted by the Command class.
-     * @return true if the request could be sent, false otherwise.
-     */
-    bool sendCommand(const QString& command);
-
-    QMutex sendLock_;
-
-private:
-    boost::thread* sendThread_;
-    StreamSendWorker* sendWorker_;
-};
+void StreamSendWorker::sendImage( PromisePtr promise,
+                                  const ImageWrapper& image )
+{
+    boost::mutex::scoped_lock lock(_mutex);
+    requests_.push_back( Request( promise, image ));
+    _cond.notify_all();
+}
 
 }
-#endif // DCSTREAMPRIVATE_H

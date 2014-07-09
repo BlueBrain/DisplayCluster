@@ -71,30 +71,24 @@ bool Stream::isConnected() const
 
 bool Stream::send( const ImageWrapper& image )
 {
-    if( image.compressionPolicy != COMPRESSION_ON &&
-        image.pixelFormat != dc::RGBA )
-    {
-        put_flog(LOG_ERROR, "Currently, RAW images can only be sent in RGBA format. Other formats support remain to be implemented.");
-        return false;
-    }
-
-    const ImageSegmenter::Handler sendFunc =
-        boost::bind( &StreamPrivate::sendPixelStreamSegment, impl_, _1 );
-    return impl_->imageSegmenter_.generate( image, sendFunc );
+    return impl_->send( image );
 }
 
 bool Stream::finishFrame()
 {
-    // Open a window for the PixelStream
-    MessageHeader mh(MESSAGE_TYPE_PIXELSTREAM_FINISH_FRAME, 0, impl_->name_);
-    return impl_->dcSocket_.send(mh, QByteArray());
+    return impl_->finishFrame();
+}
+
+Stream::Future Stream::asyncSend( const ImageWrapper& image )
+{
+    return impl_->asyncSend( image );
 }
 
 bool Stream::registerForEvents(const bool exclusive)
 {
     if(!isConnected())
     {
-        put_flog(LOG_WARN, "dcSocket is NULL or not connected");
+        put_flog(LOG_WARN, "Stream is not connected, registerForEvents failed");
         return false;
     }
 
@@ -138,6 +132,7 @@ int Stream::getDescriptor() const
 
 bool Stream::hasEvent() const
 {
+    QMutexLocker locker( &impl_->sendLock_ );
     return impl_->dcSocket_.hasMessage(Event::serializedSize);
 }
 
@@ -146,6 +141,7 @@ Event Stream::getEvent()
     MessageHeader mh;
     QByteArray message;
 
+    QMutexLocker locker( &impl_->sendLock_ );
     bool success = impl_->dcSocket_.receive(mh, message);
 
     if(!success || mh.type != MESSAGE_TYPE_EVENT)
