@@ -43,7 +43,6 @@
 #include "log.h"
 
 #include <QtNetwork/QTcpSocket>
-#include <QThread>
 
 #define RECEIVE_TIMEOUT_MS                 1000
 #define WAIT_FOR_BYTES_WRITTEN_TIMEOUT_MS  1000

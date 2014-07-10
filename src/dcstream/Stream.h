@@ -41,6 +41,11 @@
 #ifndef DCSTREAM_H
 #define DCSTREAM_H
 
+// needed for future.hpp with Boost 1.41
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/condition_variable.hpp>
+
+#include <boost/thread/future.hpp>
 #include <string>
 
 #include "Event.h"
@@ -90,9 +95,32 @@ public:
     /** @return true if the stream is connected, false otherwise. @version 1.0*/
     bool isConnected() const;
 
+    /** @name Asynchronous send API */
+    //@{
+    /** Future signaling success of asyncSend(). @version 1.1 */
+    typedef boost::unique_future< bool > Future;
+
     /**
-     * Send an image.
+     * Send an image asynchronously.
      *
+     * The send and the optional compression are executed in a different thread.
+     * The result of this operation can be obtained by the returned future
+     * object.
+     *
+     * @param image The image to send
+     * @return true if the image data could be sent, false otherwise
+     * @see send()
+     * @version 1.1
+     */
+    Future asyncSend( const ImageWrapper& image );
+    //@}
+
+    /** @name Synchronous send API */
+    //@{
+    /**
+     * Send an image synchronously.
+     *
+     * @note A call to send() while an asyncSend() is pending is undefined.
      * @param image The image to send
      * @return true if the image data could be sent, false otherwise
      * @version 1.0
@@ -108,10 +136,13 @@ public:
      * the images once all the senders which use the same name have finished a
      * frame.
      *
+     * @note A call to finishFrame() while an asyncSend() is pending is
+     *       undefined.
      * @see send()
      * @version 1.0
      */
     bool finishFrame();
+    //@}
 
     /**
      * Register to receive Events.
