@@ -62,7 +62,7 @@ TestPattern::TestPattern(QGLWidget* widget,
     labels_.push_back(QString("Host: %1").arg(configuration->getHost()));
     labels_.push_back(QString("Display: %1").arg(configuration->getDisplay()));
     labels_.push_back(QString("Tile coordinates: (%1,%2)").arg(globalScreenIndex.x()).arg(globalScreenIndex.y()));
-    labels_.push_back(QString("Resolution: %1 x %2").arg(configuration->getScreenWidth()).arg(configuration->getScreenWidth()));
+    labels_.push_back(QString("Resolution: %1 x %2").arg(configuration->getScreenWidth()).arg(configuration->getScreenHeight()));
     labels_.push_back(QString("Fullscreen mode: %1").arg(fullsceenMode));
 }
 
