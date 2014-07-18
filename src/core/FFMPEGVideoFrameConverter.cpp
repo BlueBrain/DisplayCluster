@@ -47,7 +47,11 @@ FFMPEGVideoFrameConverter::FFMPEGVideoFrameConverter(const AVCodecContext& video
     , avFrameRGB_(0)
 {
     // allocate video frame for RGB conversion
+#if(LIBAVCODEC_VERSION_MAJOR <= 55 && LIBAVCODEC_VERSION_MINOR < 28)
     avFrameRGB_ = avcodec_alloc_frame();
+#else
+    avFrameRGB_ = av_frame_alloc();
+#endif
 
     if( !avFrameRGB_ )
     {

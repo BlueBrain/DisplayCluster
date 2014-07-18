@@ -31,6 +31,8 @@ add_definitions(-D__STDC_CONSTANT_MACROS)
 if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND AND FCGI_FOUND)
   include_directories(SYSTEM ${MPI_INCLUDE_PATH})
   set(BUILD_CORE_LIBRARY ON)
+else()
+  message( SEND_ERROR "One of OpenGL MPI ffmpeg fcgi was not found. Not building core library!" )
 endif()
 
 if(TUIO_FOUND)
