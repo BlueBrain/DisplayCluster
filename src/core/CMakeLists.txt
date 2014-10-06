@@ -3,6 +3,7 @@
 #                     Raphael Dumusc <raphael.dumusc@epfl.ch>
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${FFMPEG_INCLUDE_DIR})
 
 set(DCCORE_LINK_LIBRARIES dcwebservice
   ${Boost_LIBRARIES}
