@@ -90,6 +90,12 @@ BaseContentWindow {
             BorderRectangle {
                 TouchArea {
                     anchors.fill: parent
+                    // Ideally a double tap should emit touchEnd but this changes behaviour
+                    // for pixelstreamer.
+                    onDoubleTap: {
+                        contentwindow.border = ContentWindow.NOBORDER
+                        contentwindow.state = ContentWindow.NONE
+                    }
                     onTouchBegin: {
                         contentwindow.border = parent.border
                         contentwindow.state = ContentWindow.RESIZING
