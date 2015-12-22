@@ -12,5 +12,5 @@ else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -include config.h")
 endif()
 
-add_subdirectory(webservice)
+add_subdirectory(fcgiwebservice)
 add_subdirectory(core)

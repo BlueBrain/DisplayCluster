@@ -64,10 +64,13 @@
 #include "FileCommandHandler.h"
 #include "WebbrowserCommandHandler.h"
 
-#include "ws/WebServiceServer.h"
-#include "ws/TextInputDispatcher.h"
-#include "ws/TextInputHandler.h"
-#include "ws/DisplayGroupAdapter.h"
+#include "fcgiws/FCGIWebServiceServer.h"
+#include "fcgiws/TextInputDispatcher.h"
+#include "fcgiws/TextInputHandler.h"
+#include "fcgiws/DisplayGroupAdapter.h"
+
+#include "restbridgews/RESTBridgeServer.h"
+#include "restbridgews/UrlEventHandler.h"
 
 #include <deflect/CommandHandler.h>
 #include <deflect/EventReceiver.h>
@@ -87,20 +90,7 @@ MasterApplication::MasterApplication( int& argc_, char** argv_,
     setAttribute( Qt::AA_SynthesizeTouchForUnhandledMouseEvents, false );
     setAttribute( Qt::AA_SynthesizeMouseForUnhandledTouchEvents, false );
 
-    CommandLineParameters options( argc_, argv_ );
-    if( options.getHelp( ))
-        options.showSyntax();
-
-    if( !createConfig( options.getConfigFilename( )))
-        throw std::runtime_error( "MasterApplication: initialization failed." );
-
-    displayGroup_.reset( new DisplayGroup( config_->getTotalSize( )));
-
-    init();
-
-    const QString& session = options.getSessionFilename();
-    if( !session.isEmpty( ))
-        StateSerializationHelper( displayGroup_ ).load( session );
+    init( argc_, argv_ );
 }
 
 MasterApplication::~MasterApplication()
@@ -115,12 +105,21 @@ MasterApplication::~MasterApplication()
     mpiReceiveThread_.quit();
     mpiReceiveThread_.wait();
 
-    webServiceServer_->stop();
-    webServiceServer_->wait();
+    fcgiServer_->stop();
+    fcgiServer_->wait();
 }
 
-void MasterApplication::init()
+void MasterApplication::init( int argc, const char** argv )
 {
+    CommandLineParameters options( argc, argv );
+    if( options.getHelp( ))
+        options.showSyntax();
+
+    if( !createConfig( options.getConfigFilename( )))
+        throw std::runtime_error( "MasterApplication: initialization failed." );
+
+    displayGroup_.reset( new DisplayGroup( config_->getTotalSize( )));
+
     connect( this, &MasterApplication::lastWindowClosed,
              this, &MasterApplication::quit );
 
@@ -130,13 +129,18 @@ void MasterApplication::init()
 
     initPixelStreamLauncher();
     startDeflectServer();
-    startWebservice( config_->getWebServicePort( ));
+    startFCGIservice( config_->getWebServicePort( ));
+    startRestBridgeService( argc, argv );
     initMPIConnection();
     restoreBackground();
 
 #if ENABLE_TUIO_TOUCH_LISTENER
     initTouchListener();
 #endif
+
+    const QString& session = options.getSessionFilename();
+    if( !session.isEmpty( ))
+        StateSerializationHelper( displayGroup_ ).load( session );
 }
 
 bool MasterApplication::createConfig( const QString& filename )
@@ -192,25 +196,35 @@ void MasterApplication::startDeflectServer()
                                               *pixelStreamerLauncher_, url ));
 }
 
-void MasterApplication::startWebservice( const int webServicePort )
+void MasterApplication::startFCGIservice( const int webServicePort )
 {
-    if( webServiceServer_ )
+    if( fcgiServer_ )
         return;
 
-    webServiceServer_.reset( new WebServiceServer( webServicePort ));
+    fcgiServer_.reset( new FCGIWebServiceServer( webServicePort ));
 
     DisplayGroupAdapterPtr adapter( new DisplayGroupAdapter( displayGroup_ ));
     TextInputHandler* textInputHandler = new TextInputHandler( adapter );
-    webServiceServer_->addHandler( "/dcapi/textinput",
+    fcgiServer_->addHandler( "/dcapi/textinput",
                                   dcWebservice::HandlerPtr( textInputHandler ));
 
-    textInputHandler->moveToThread( webServiceServer_.get( ));
+    textInputHandler->moveToThread( fcgiServer_.get( ));
     textInputDispatcher_.reset( new TextInputDispatcher( displayGroup_ ));
     connect( textInputHandler, &TextInputHandler::receivedKeyInput,
              textInputDispatcher_.get(),
              &TextInputDispatcher::sendKeyEventToActiveWindow );
 
-    webServiceServer_->start();
+    fcgiServer_->start();
+}
+
+void MasterApplication::startRestBridgeService( int argc, const char** argv )
+{
+    if( restBridgeServer_ )
+        return;
+
+    static UrlEventHandler urlHandler( displayGroup_ );
+    restBridgeServer_.reset( RESTBridgeServer( argc, argv ));
+    restBridgeServer_->registerHandler( urlHandler );
 }
 
 void MasterApplication::restoreBackground()

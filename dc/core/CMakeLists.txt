@@ -22,6 +22,7 @@ set(DCCORE_LINK_LIBRARIES
     Qt5::XmlPatterns
     ${OPENGL_LIBRARIES}
     ${FFMPEG_LIBRARIES}
+    ${RESTBRIDGE_LIBRARIES}
 )
 
 if(ENABLE_TUIO_TOUCH_LISTENER)
@@ -107,8 +108,8 @@ list(APPEND DCCORE_PUBLIC_HEADERS
   thumbnail/StateThumbnailGenerator.h
   thumbnail/ThumbnailGenerator.h
   thumbnail/ThumbnailGeneratorFactory.h
-  ws/AsciiToQtKeyCodeMapper.h
-  ws/DisplayGroupAdapter.h
+  fcgiws/AsciiToQtKeyCodeMapper.h
+  fcgiws/DisplayGroupAdapter.h
 )
 
 list(APPEND DCCORE_MOC_PUBLIC_HEADERS
@@ -148,9 +149,12 @@ list(APPEND DCCORE_MOC_PUBLIC_HEADERS
   localstreamer/WebkitAuthenticationHelper.h
   localstreamer/WebkitHtmlSelectReplacer.h
   localstreamer/WebkitPixelStreamer.h
-  ws/TextInputDispatcher.h
-  ws/TextInputHandler.h
-  ws/WebServiceServer.h
+  fcgiws/TextInputDispatcher.h
+  fcgiws/TextInputHandler.h
+  fcgiws/FCGIWebServiceServer.h
+  restbridgews/RESTBridgeServer.h
+  restbridgews/RESTBridgeEventHandler.h
+  restbridgews/UrlEventHandler.h
 )
 
 list(APPEND DCCORE_SOURCES
@@ -251,11 +255,13 @@ list(APPEND DCCORE_SOURCES
   thumbnail/StateThumbnailGenerator.cpp
   thumbnail/ThumbnailGenerator.cpp
   thumbnail/ThumbnailGeneratorFactory.cpp
-  ws/AsciiToQtKeyCodeMapper.cpp
-  ws/DisplayGroupAdapter.cpp
-  ws/TextInputDispatcher.cpp
-  ws/TextInputHandler.cpp
-  ws/WebServiceServer.cpp
+  fcgiws/AsciiToQtKeyCodeMapper.cpp
+  fcgiws/DisplayGroupAdapter.cpp
+  fcgiws/TextInputDispatcher.cpp
+  fcgiws/TextInputHandler.cpp
+  fcgiws/FCGIWebServiceServer.cpp
+  restbridgews/RESTBridgeServer.cpp
+  restbridgews/UrlEventHandler.cpp
 )
 
 set(DCCORE_RESOURCES resources/core.qrc)

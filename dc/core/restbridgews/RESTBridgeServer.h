@@ -1,6 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/* Copyright (c) 2015, EPFL/Blue Brain Project                       */
+/*                     Ahmet Bilgili <ahmet.bilgili@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -37,56 +37,34 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef TEXTINPUTHANDLER_H
-#define TEXTINPUTHANDLER_H
+#ifndef RESTBRIDGESERVER_H
+#define RESTBRIDGESERVER_H
+
+#include <zeq/types.h>
+#include <RESTBridgeEventHandler.h>
 
 #include <QObject>
 
-#include "dc/webservice/Handler.h"
-
-#include "types.h"
-
 /**
- * Handle "/textinput" requests for the WebService.
- *
- * When a valid request is received, the receivedText() signal is emitted.
- * This class is typically used in the WebServiceServer thread and communicates
- * with the TextInputDispatcher in the main thread via signals/slots.
+ * RESTBridge server class for handling the zeq messages
+ * using the REST interface
  */
-class TextInputHandler : public QObject, public dcWebservice::Handler
+class RESTBridgeServer : public QObject
 {
     Q_OBJECT
-
 public:
-    /**
-     * Handle TextInput requests.
-     * @param displayGroupAdapter An adapter over the displayGroup, used for
-     *        unit testing. If provided, the class takes ownership of it.
-     */
-    TextInputHandler( DisplayGroupAdapterPtr displayGroupAdapter );
 
-    /** Destructor */
-    virtual ~TextInputHandler();
+    RESTBridgeServer( int argc, const char** argv );
+    ~RESTBridgeServer();
 
-    /**
-     * Handle a request.
-     * @param request A valid dcWebservice::Request object.
-     * @return A valid Response object.
-     */
-    dcWebservice::ConstResponsePtr
-    handle( const dcWebservice::Request& request ) const override;
-
-signals:
-    /**
-     * Emitted whenever a request is successfully handled.
-     * @param key The key code received in the Request.
-     */
-    void receivedKeyInput( char key ) const;
+    void registerHandler( const RESTBridgeEventHandler& eventHandler );
+    void deregisterHandler( const RESTBridgeEventHandler& eventHandler );
 
 private:
-    Q_DISABLE_COPY( TextInputHandler )
 
-    DisplayGroupAdapterPtr displayGroupAdapter_;
+    struct Impl;
+    QScopedPointer<Impl> _impl;
+
 };
 
-#endif // TEXTINPUTHANDLER_H
+#endif // RESTBRIDGESERVER_H

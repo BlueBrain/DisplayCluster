@@ -37,52 +37,48 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef WEBSERVICESERVER_H
-#define WEBSERVICESERVER_H
+#include "TextInputHandler.h"
 
-#include <QThread>
+#include "fcgiws/DisplayGroupAdapter.h"
+#include "dc/fcgiwebservice/Response.h"
+#include "dc/fcgiwebservice/Request.h"
 
-#include "dc/webservice/types.h"
-
-/**
- * A Qt wrapper to run the dcWebservice::Server in a QThread.
- */
-class WebServiceServer : public QThread
+TextInputHandler::TextInputHandler(DisplayGroupAdapterPtr displayGroupAdapter)
+    : displayGroupAdapter_(displayGroupAdapter)
 {
-    Q_OBJECT
-public:
-    /** Constructor */
-    WebServiceServer(const unsigned int port, QObject *parentObject = 0);
+}
 
-    /** Destructor */
-    ~WebServiceServer();
+TextInputHandler::~TextInputHandler()
+{
+}
 
-    /**
-     * Registers a request handler with a particular regular expression.
-     *
-     * When the URL of an incoming request matches the regular expression
-     * the handler is invoked.
-     *
-     * @param pattern A regular expression.
-     * @param handler A request handler. If the handler is a QObject, it should be moved
-     *        to this thread before making any signal/slot connections.
-     * @return true if the handler was registered succesfully, false otherwise,
-     *         for instance if the regular expression is not valid.
-     */
-    bool addHandler(const std::string& pattern, dcWebservice::HandlerPtr handler);
+dcWebservice::ConstResponsePtr TextInputHandler::handle(const dcWebservice::Request& request) const
+{
+    dcWebservice::ResponsePtr response(new dcWebservice::Response());
 
-    /**
-     * Stop the server. This method is thread-safe.
-     */
-    bool stop();
+    if(request.data.size() < 1)
+    {
+        response->statusCode = 400;
+        response->statusMsg = "Bad Request";
+        response->body = "{\"code\":\"400\", \"msg\":\"Bad Request. Expected at least one character.\"}";
+    }
+    else if (displayGroupAdapter_->hasWindows())
+    {
+    for(std::string::const_iterator it = request.data.begin(); it != request.data.end(); ++it)
+    {
+        emit receivedKeyInput(*it);
+    }
 
-protected:
-    /** @overload Start the server. */
-    void run() override;
+        response->statusCode = 200;
+        response->statusMsg = "OK";
+        response->body = "{\"code\":\"200\", \"msg\":\"OK, text added\"}";
+    }
+    else
+    {
+        response->statusCode = 404;
+        response->statusMsg = "Not Found";
+        response->body = "{\"code\":\"404\", \"msg\":\"No Window Found\"}";
+    }
 
-private:
-    dcWebservice::Server* server_;
-    unsigned int port_;
-};
-
-#endif // WEBSERVICESERVER_H
+    return response;
+}

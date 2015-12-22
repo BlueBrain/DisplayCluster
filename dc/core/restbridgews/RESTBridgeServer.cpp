@@ -1,6 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/* Copyright (c) 2015, EPFL/Blue Brain Project                       */
+/*                     Ahmet Bilgili <ahmet.bilgili@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -37,80 +37,86 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MASTERAPPLICATION_H
-#define MASTERAPPLICATION_H
+#include "RESTBridgeServer.h"
 
-#include "config.h"
-#include "types.h"
+#include <restbridge/RestBridge.h>
+#include <zeq/event.h>
+#include <zeq/publisher.h>
+#include <zeq/subscriber.h>
 
-#include <QApplication>
-#include <QThread>
-#include <boost/scoped_ptr.hpp>
+#include <thread>
+#include <functional>
+#include <mutex>
 
-class MasterToWallChannel;
-class MasterFromWallChannel;
-class MasterWindow;
-class PixelStreamerLauncher;
-class PixelStreamWindowManager;
-class FCGIWebServiceServer;
-class RESTBridgeServer;
-class TextInputDispatcher;
-class MasterConfiguration;
-class MultiTouchListener;
-
-/**
- * The main application for the Master process.
- */
-class MasterApplication : public QApplication
+struct RESTBridgeServer::Impl
 {
-    Q_OBJECT
+    Impl( RESTBridgeServer& server, int argc, const char** argv )
+        : _server( server )
+        , _restBridge( restbridge::RestBridge::parse( argc, argv ))
+        , _subscriber( _restBridge->getSubscriberURI( ))
+        , _running( true )
+        , _receiveThread( this, &RESTBridgeServer::Impl::receive )
+    {
+        if( !_restBridge )
+            throw std::runtime_error( "RESTBridge initialization failed" );
 
-public:
-    /**
-     * Constructor
-     * @param argc Command line argument count (required by QApplication)
-     * @param argv Command line arguments (required by QApplication)
-     * @param worldChannel The world MPI channel
-     * @throw std::runtime_error if an error occured during initialization
-     */
-    MasterApplication(int &argc, char **argv, MPIChannelPtr worldChannel);
+        if( !_restBridge.isRunning( ))
+            throw std::runtime_error( "RESTBridge is not running" );
 
-    /** Destructor */
-    virtual ~MasterApplication();
+    }
 
-private:
-    boost::scoped_ptr<MasterToWallChannel> masterToWallChannel_;
-    boost::scoped_ptr<MasterFromWallChannel> masterFromWallChannel_;
-    boost::scoped_ptr<MasterWindow> masterWindow_;
-    boost::scoped_ptr<MasterConfiguration> config_;
-    boost::scoped_ptr<deflect::Server> deflectServer_;
-    boost::scoped_ptr<PixelStreamerLauncher> pixelStreamerLauncher_;
-    boost::scoped_ptr<PixelStreamWindowManager> pixelStreamWindowManager_;
-    boost::scoped_ptr<FCGIWebServiceServer> fcgiServer_;
-    boost::scoped_ptr<RESTBridgeServer> restBridgeServer_;
-    boost::scoped_ptr<TextInputDispatcher> textInputDispatcher_;
-#if ENABLE_TUIO_TOUCH_LISTENER
-    boost::scoped_ptr<MultiTouchListener> touchListener_;
-#endif
+    void receive()
+    {
+        while( _running )
+        {
+            std::lock_guard<std::mutex> lock( _lock );
+            _subscriber.receive( 100 );
+        }
+    }
 
-    DisplayGroupPtr displayGroup_;
-    MarkersPtr markers_;
+    ~Impl()
+    {
+        _running = false;
+        _receiveThread.join();
+    }
 
-    QThread mpiSendThread_;
-    QThread mpiReceiveThread_;
+    void registerHandler( const RESTBridgeEventHandler& handler )
+    {
+        std::lock_guard<std::mutex> lock( _lock );
+        _subscriber.registerHandler( handler->getEventId(),
+                                     handler->getEventFunc( ));
+    }
 
-    void init( int argc, const char** argv );
-    bool createConfig(const QString& filename);
-    void startDeflectServer();
-    void startFCGIservice(const int webServicePort);
-    void startRestBridgeService(int argc, const char** argv);
-    void restoreBackground();
-    void initPixelStreamLauncher();
-    void initMPIConnection();
+    void deregisterHandler( const RESTBridgeEventHandler& handler )
+    {
+        std::lock_guard<std::mutex> lock( _lock );
+        _subscriber.deregisterHandler( handler->getEventId( ));
+    }
 
-#if ENABLE_TUIO_TOUCH_LISTENER
-    void initTouchListener();
-#endif
+    std::unique_ptr< restbridge::RestBridge > _restBridge;
+    zeq::Subscriber _subscriber;
+    bool _running;
+    std::thread _receiveThread;
+    std::mutex _lock;
+
 };
 
-#endif // MASTERAPPLICATION_H
+RESTBridgeServer::RESTBridgeServer( int argc, const char** argv )
+    : _impl( new RESTBridgeServer::Impl( *this, argc, argv ))
+{}
+
+RESTBridgeServer::~RESTBridgeServer() {}
+
+
+void RESTBridgeServer::registerHandler( const RESTBridgeEventHandler& handler )
+{
+    _restBridge.registerHandler( handler );
+}
+
+void RESTBridgeServer::deregisterHandler( const RESTBridgeEventHandler& handler )
+{
+    _impl->deregisterHandler( handler );
+}
+
+
+

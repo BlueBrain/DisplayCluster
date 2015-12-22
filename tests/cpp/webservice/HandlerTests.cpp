@@ -40,9 +40,9 @@
 
 #define BOOST_TEST_MODULE DefaultHandlerTests
 #include <boost/test/unit_test.hpp>
-#include "dc/webservice/DefaultHandler.h"
-#include "dc/webservice/Response.h"
-#include "dc/webservice/Request.h"
+#include "dc/fcgiwebservice/DefaultHandler.h"
+#include "dc/fcgiwebservice/Response.h"
+#include "dc/fcgiwebservice/Request.h"
 
 namespace ut = boost::unit_test;
 

@@ -37,45 +37,44 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef TEXTINPUTDISPATCHER_H
-#define TEXTINPUTDISPATCHER_H
+#include "FCGIWebServiceServer.h"
 
-#include "types.h"
-#include "AsciiToQtKeyCodeMapper.h"
+#include "dc/fcgiwebservice/Server.h"
+#include "dc/fcgiwebservice/DefaultHandler.h"
 
-#include <QObject>
+#include "log.h"
 
-/**
- * Dispatch text input from the WebServiceServer thread to the active ContentWindow.
- */
-class TextInputDispatcher : public QObject
+FCGIWebServiceServer::FCGIWebServiceServer( const unsigned int port,
+                                    QObject* parentObject )
+    : QThread( parentObject )
+    , server_( new dcWebservice::Server( ))
+    , port_( port )
+{}
+
+FCGIWebServiceServer::~FCGIWebServiceServer()
 {
-    Q_OBJECT
+    delete server_;
+}
 
-public:
-    /**
-     * Constructor.
-     * @param displayGroup The DisplayGroup which holds the target ContentWindow
-     * @param parentObject An optional parent QObject
-     */
-    TextInputDispatcher( DisplayGroupPtr displayGroup,
-                         QObject* parentObject = 0 );
+bool FCGIWebServiceServer::addHandler( const std::string& pattern,
+                                   dcWebservice::HandlerPtr handler )
+{
+    if( server_->addHandler( pattern, handler ))
+        return true;
 
-    /** Destructor. */
-    ~TextInputDispatcher();
+    put_flog( LOG_WARN, "Invalid regex: '%s', handler could not be added",
+              pattern.c_str( ));
+    return false;
+}
 
-public slots:
-    /**
-     * Send the given key event to the active (frontmost) window
-     * @param key The key code to send
-     */
-    void sendKeyEventToActiveWindow( char key ) const;
+void FCGIWebServiceServer::run()
+{
+    put_flog( LOG_INFO, "Listening on port: %d", port_ );
+    server_->run( port_ );
+}
 
-private:
-    Q_DISABLE_COPY( TextInputDispatcher )
-
-    DisplayGroupPtr displayGroup_;
-    AsciiToQtKeyCodeMapper keyMapper_;
-};
-
-#endif // TEXTINPUTDISPATCHER_H
+bool FCGIWebServiceServer::stop()
+{
+    put_flog( LOG_INFO, "Shutting down" );
+    return server_->stop();
+}

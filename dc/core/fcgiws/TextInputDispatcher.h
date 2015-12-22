@@ -37,44 +37,45 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "WebServiceServer.h"
+#ifndef TEXTINPUTDISPATCHER_H
+#define TEXTINPUTDISPATCHER_H
 
-#include "dc/webservice/Server.h"
-#include "dc/webservice/DefaultHandler.h"
+#include "types.h"
+#include "AsciiToQtKeyCodeMapper.h"
 
-#include "log.h"
+#include <QObject>
 
-WebServiceServer::WebServiceServer( const unsigned int port,
-                                    QObject* parentObject )
-    : QThread( parentObject )
-    , server_( new dcWebservice::Server( ))
-    , port_( port )
-{}
-
-WebServiceServer::~WebServiceServer()
+/**
+ * Dispatch text input from the FCGIWebServiceServer thread to the active ContentWindow.
+ */
+class TextInputDispatcher : public QObject
 {
-    delete server_;
-}
+    Q_OBJECT
 
-bool WebServiceServer::addHandler( const std::string& pattern,
-                                   dcWebservice::HandlerPtr handler )
-{
-    if( server_->addHandler( pattern, handler ))
-        return true;
+public:
+    /**
+     * Constructor.
+     * @param displayGroup The DisplayGroup which holds the target ContentWindow
+     * @param parentObject An optional parent QObject
+     */
+    TextInputDispatcher( DisplayGroupPtr displayGroup,
+                         QObject* parentObject = 0 );
 
-    put_flog( LOG_WARN, "Invalid regex: '%s', handler could not be added",
-              pattern.c_str( ));
-    return false;
-}
+    /** Destructor. */
+    ~TextInputDispatcher();
 
-void WebServiceServer::run()
-{
-    put_flog( LOG_INFO, "Listening on port: %d", port_ );
-    server_->run( port_ );
-}
+public slots:
+    /**
+     * Send the given key event to the active (frontmost) window
+     * @param key The key code to send
+     */
+    void sendKeyEventToActiveWindow( char key ) const;
 
-bool WebServiceServer::stop()
-{
-    put_flog( LOG_INFO, "Shutting down" );
-    return server_->stop();
-}
+private:
+    Q_DISABLE_COPY( TextInputDispatcher )
+
+    DisplayGroupPtr displayGroup_;
+    AsciiToQtKeyCodeMapper keyMapper_;
+};
+
+#endif // TEXTINPUTDISPATCHER_H

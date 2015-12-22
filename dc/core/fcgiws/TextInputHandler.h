@@ -37,48 +37,56 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "TextInputHandler.h"
+#ifndef TEXTINPUTHANDLER_H
+#define TEXTINPUTHANDLER_H
 
-#include "ws/DisplayGroupAdapter.h"
-#include "dc/webservice/Response.h"
-#include "dc/webservice/Request.h"
+#include <QObject>
 
-TextInputHandler::TextInputHandler(DisplayGroupAdapterPtr displayGroupAdapter)
-    : displayGroupAdapter_(displayGroupAdapter)
+#include "dc/fcgiwebservice/Handler.h"
+
+#include "types.h"
+
+/**
+ * Handle "/textinput" requests for the WebService.
+ *
+ * When a valid request is received, the receivedText() signal is emitted.
+ * This class is typically used in the FCGIWebServiceServer thread and communicates
+ * with the TextInputDispatcher in the main thread via signals/slots.
+ */
+class TextInputHandler : public QObject, public dcWebservice::Handler
 {
-}
+    Q_OBJECT
 
-TextInputHandler::~TextInputHandler()
-{
-}
+public:
+    /**
+     * Handle TextInput requests.
+     * @param displayGroupAdapter An adapter over the displayGroup, used for
+     *        unit testing. If provided, the class takes ownership of it.
+     */
+    TextInputHandler( DisplayGroupAdapterPtr displayGroupAdapter );
 
-dcWebservice::ConstResponsePtr TextInputHandler::handle(const dcWebservice::Request& request) const
-{
-    dcWebservice::ResponsePtr response(new dcWebservice::Response());
+    /** Destructor */
+    virtual ~TextInputHandler();
 
-    if(request.data.size() < 1)
-    {
-        response->statusCode = 400;
-        response->statusMsg = "Bad Request";
-        response->body = "{\"code\":\"400\", \"msg\":\"Bad Request. Expected at least one character.\"}";
-    }
-    else if (displayGroupAdapter_->hasWindows())
-    {
-    for(std::string::const_iterator it = request.data.begin(); it != request.data.end(); ++it)
-    {
-        emit receivedKeyInput(*it);
-    }
+    /**
+     * Handle a request.
+     * @param request A valid dcWebservice::Request object.
+     * @return A valid Response object.
+     */
+    dcWebservice::ConstResponsePtr
+    handle( const dcWebservice::Request& request ) const override;
 
-        response->statusCode = 200;
-        response->statusMsg = "OK";
-        response->body = "{\"code\":\"200\", \"msg\":\"OK, text added\"}";
-    }
-    else
-    {
-        response->statusCode = 404;
-        response->statusMsg = "Not Found";
-        response->body = "{\"code\":\"404\", \"msg\":\"No Window Found\"}";
-    }
+signals:
+    /**
+     * Emitted whenever a request is successfully handled.
+     * @param key The key code received in the Request.
+     */
+    void receivedKeyInput( char key ) const;
 
-    return response;
-}
+private:
+    Q_DISABLE_COPY( TextInputHandler )
+
+    DisplayGroupAdapterPtr displayGroupAdapter_;
+};
+
+#endif // TEXTINPUTHANDLER_H

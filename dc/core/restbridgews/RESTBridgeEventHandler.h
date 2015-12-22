@@ -1,6 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/* Copyright (c) 2015, EPFL/Blue Brain Project                       */
+/*                     Ahmet Bilgili <ahmet.bilgili@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -35,82 +35,65 @@
 /* documentation are those of the authors and should not be          */
 /* interpreted as representing official policies, either expressed   */
 /* or implied, of The University of Texas at Austin.                 */
+
 /*********************************************************************/
 
-#ifndef MASTERAPPLICATION_H
-#define MASTERAPPLICATION_H
+#ifndef RESTBRIDGEEVENTHANDLER_H
+#define RESTBRIDGEEVENTHANDLER_H
 
-#include "config.h"
-#include "types.h"
+#include <zeq/types.h>
 
-#include <QApplication>
-#include <QThread>
-#include <boost/scoped_ptr.hpp>
-
-class MasterToWallChannel;
-class MasterFromWallChannel;
-class MasterWindow;
-class PixelStreamerLauncher;
-class PixelStreamWindowManager;
-class FCGIWebServiceServer;
-class RESTBridgeServer;
-class TextInputDispatcher;
-class MasterConfiguration;
-class MultiTouchListener;
+#include <QObject>
 
 /**
- * The main application for the Master process.
+ * The event handler for RESTBridge events. The implementation guarantees
+ * that zeq events are always processed in main event loop.
  */
-class MasterApplication : public QApplication
+class RESTBridgeEventHandler : public QObject
 {
     Q_OBJECT
 
 public:
-    /**
-     * Constructor
-     * @param argc Command line argument count (required by QApplication)
-     * @param argv Command line arguments (required by QApplication)
-     * @param worldChannel The world MPI channel
-     * @throw std::runtime_error if an error occured during initialization
-     */
-    MasterApplication(int &argc, char **argv, MPIChannelPtr worldChannel);
 
-    /** Destructor */
-    virtual ~MasterApplication();
+    RESTBridgeEventHandler( const servus::uint128_t& eventId )
+        : _eventId( eventId )
+    {
+        QObject::connect( this, &_onEventReceivedSignal,
+                          this, &S_onEventReceivedSlot,
+                          Qt::QueuedConnection );
+    }
+
+    ~RESTBridgeEventHandler()
+    {}
+
+    virtual onEvent( const zeq::Event& event ) = 0;
+
+    const zeq::EventFunc& getEventFunc() const
+        { return zeq::EventFunc( &RESTBridgeEventHandler::_onZeqEvent, this ); }
+
+    const servus::uint128_t& getEventId() const
+        { return _eventId; }
+
+signals:
+
+    void _onEventReceivedSignal( const zeq::Event& event );
+
+private slots:
+
+    void _onEventReceivedSlot( const zeq::Event& event )
+    {
+        onEvent( event );
+    }
 
 private:
-    boost::scoped_ptr<MasterToWallChannel> masterToWallChannel_;
-    boost::scoped_ptr<MasterFromWallChannel> masterFromWallChannel_;
-    boost::scoped_ptr<MasterWindow> masterWindow_;
-    boost::scoped_ptr<MasterConfiguration> config_;
-    boost::scoped_ptr<deflect::Server> deflectServer_;
-    boost::scoped_ptr<PixelStreamerLauncher> pixelStreamerLauncher_;
-    boost::scoped_ptr<PixelStreamWindowManager> pixelStreamWindowManager_;
-    boost::scoped_ptr<FCGIWebServiceServer> fcgiServer_;
-    boost::scoped_ptr<RESTBridgeServer> restBridgeServer_;
-    boost::scoped_ptr<TextInputDispatcher> textInputDispatcher_;
-#if ENABLE_TUIO_TOUCH_LISTENER
-    boost::scoped_ptr<MultiTouchListener> touchListener_;
-#endif
 
-    DisplayGroupPtr displayGroup_;
-    MarkersPtr markers_;
+    void _onZeqEvent( const zeq::Event& event )
+    {
+        emit _onEventReceivedSignal( event );
+    }
 
-    QThread mpiSendThread_;
-    QThread mpiReceiveThread_;
-
-    void init( int argc, const char** argv );
-    bool createConfig(const QString& filename);
-    void startDeflectServer();
-    void startFCGIservice(const int webServicePort);
-    void startRestBridgeService(int argc, const char** argv);
-    void restoreBackground();
-    void initPixelStreamLauncher();
-    void initMPIConnection();
-
-#if ENABLE_TUIO_TOUCH_LISTENER
-    void initTouchListener();
-#endif
+    servus::uint128_t _eventId;
 };
 
-#endif // MASTERAPPLICATION_H
+#endif // RESTBRIDGEEVENTHANDLER_H
+

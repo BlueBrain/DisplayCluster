@@ -37,80 +37,52 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MASTERAPPLICATION_H
-#define MASTERAPPLICATION_H
+#ifndef WEBSERVICESERVER_H
+#define WEBSERVICESERVER_H
 
-#include "config.h"
-#include "types.h"
-
-#include <QApplication>
 #include <QThread>
-#include <boost/scoped_ptr.hpp>
 
-class MasterToWallChannel;
-class MasterFromWallChannel;
-class MasterWindow;
-class PixelStreamerLauncher;
-class PixelStreamWindowManager;
-class FCGIWebServiceServer;
-class RESTBridgeServer;
-class TextInputDispatcher;
-class MasterConfiguration;
-class MultiTouchListener;
+#include "dc/fcgiwebservice/types.h"
 
 /**
- * The main application for the Master process.
+ * A Qt wrapper to run the dcWebservice::Server in a QThread.
  */
-class MasterApplication : public QApplication
+class FCGIWebServiceServer : public QThread
 {
     Q_OBJECT
-
 public:
-    /**
-     * Constructor
-     * @param argc Command line argument count (required by QApplication)
-     * @param argv Command line arguments (required by QApplication)
-     * @param worldChannel The world MPI channel
-     * @throw std::runtime_error if an error occured during initialization
-     */
-    MasterApplication(int &argc, char **argv, MPIChannelPtr worldChannel);
+    /** Constructor */
+    FCGIWebServiceServer(const unsigned int port, QObject *parentObject = 0);
 
     /** Destructor */
-    virtual ~MasterApplication();
+    ~FCGIWebServiceServer();
+
+    /**
+     * Registers a request handler with a particular regular expression.
+     *
+     * When the URL of an incoming request matches the regular expression
+     * the handler is invoked.
+     *
+     * @param pattern A regular expression.
+     * @param handler A request handler. If the handler is a QObject, it should be moved
+     *        to this thread before making any signal/slot connections.
+     * @return true if the handler was registered succesfully, false otherwise,
+     *         for instance if the regular expression is not valid.
+     */
+    bool addHandler(const std::string& pattern, dcWebservice::HandlerPtr handler);
+
+    /**
+     * Stop the server. This method is thread-safe.
+     */
+    bool stop();
+
+protected:
+    /** @overload Start the server. */
+    void run() override;
 
 private:
-    boost::scoped_ptr<MasterToWallChannel> masterToWallChannel_;
-    boost::scoped_ptr<MasterFromWallChannel> masterFromWallChannel_;
-    boost::scoped_ptr<MasterWindow> masterWindow_;
-    boost::scoped_ptr<MasterConfiguration> config_;
-    boost::scoped_ptr<deflect::Server> deflectServer_;
-    boost::scoped_ptr<PixelStreamerLauncher> pixelStreamerLauncher_;
-    boost::scoped_ptr<PixelStreamWindowManager> pixelStreamWindowManager_;
-    boost::scoped_ptr<FCGIWebServiceServer> fcgiServer_;
-    boost::scoped_ptr<RESTBridgeServer> restBridgeServer_;
-    boost::scoped_ptr<TextInputDispatcher> textInputDispatcher_;
-#if ENABLE_TUIO_TOUCH_LISTENER
-    boost::scoped_ptr<MultiTouchListener> touchListener_;
-#endif
-
-    DisplayGroupPtr displayGroup_;
-    MarkersPtr markers_;
-
-    QThread mpiSendThread_;
-    QThread mpiReceiveThread_;
-
-    void init( int argc, const char** argv );
-    bool createConfig(const QString& filename);
-    void startDeflectServer();
-    void startFCGIservice(const int webServicePort);
-    void startRestBridgeService(int argc, const char** argv);
-    void restoreBackground();
-    void initPixelStreamLauncher();
-    void initMPIConnection();
-
-#if ENABLE_TUIO_TOUCH_LISTENER
-    void initTouchListener();
-#endif
+    dcWebservice::Server* server_;
+    unsigned int port_;
 };
 
-#endif // MASTERAPPLICATION_H
+#endif // WEBSERVICESERVER_H
