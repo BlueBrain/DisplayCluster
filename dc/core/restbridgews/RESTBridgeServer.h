@@ -40,10 +40,7 @@
 #ifndef RESTBRIDGESERVER_H
 #define RESTBRIDGESERVER_H
 
-#include <zeq/types.h>
-#include <RESTBridgeEventHandler.h>
-
-#include <QObject>
+#include <zerobuf/Zerobuf.h>
 
 /**
  * RESTBridge server class for handling the zeq messages
@@ -57,8 +54,8 @@ public:
     RESTBridgeServer( int argc, const char** argv );
     ~RESTBridgeServer();
 
-    void registerHandler( const RESTBridgeEventHandler& eventHandler );
-    void deregisterHandler( const RESTBridgeEventHandler& eventHandler );
+    void registerHandler( ::zerobuf::ZeroBuf& zerobuf );
+    void deregisterHandler( const ::zerobuf::ZeroBuf& zerobuf );
 
 private:
 

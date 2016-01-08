@@ -44,9 +44,7 @@
 #include <zeq/publisher.h>
 #include <zeq/subscriber.h>
 
-#include <thread>
-#include <functional>
-#include <mutex>
+#include <QTimer>
 
 struct RESTBridgeServer::Impl
 {
@@ -54,8 +52,7 @@ struct RESTBridgeServer::Impl
         : _server( server )
         , _restBridge( restbridge::RestBridge::parse( argc, argv ))
         , _subscriber( _restBridge->getSubscriberURI( ))
-        , _running( true )
-        , _receiveThread( this, &RESTBridgeServer::Impl::receive )
+        , _timer( &server )
     {
         if( !_restBridge )
             throw std::runtime_error( "RESTBridge initialization failed" );
@@ -63,42 +60,34 @@ struct RESTBridgeServer::Impl
         if( !_restBridge.isRunning( ))
             throw std::runtime_error( "RESTBridge is not running" );
 
+        _timer.setInterval( 100 );
+        QObject::connect( &_timer, SIGNAL(timeout()), [this]() { receive(); });
+        _timer.start();
     }
 
     void receive()
     {
-        while( _running )
-        {
-            std::lock_guard<std::mutex> lock( _lock );
-            _subscriber.receive( 100 );
-        }
+        _subscriber.receive( 0 );
     }
 
     ~Impl()
     {
-        _running = false;
-        _receiveThread.join();
+        _timer.stop();
     }
 
-    void registerHandler( const RESTBridgeEventHandler& handler )
+    void registerHandler( ::zerobuf::ZeroBuf& zerobuf )
     {
-        std::lock_guard<std::mutex> lock( _lock );
-        _subscriber.registerHandler( handler->getEventId(),
-                                     handler->getEventFunc( ));
+        _subscriber.subscribe( zerobuf );
     }
 
-    void deregisterHandler( const RESTBridgeEventHandler& handler )
+    void deregisterHandler( const ::zerobuf::ZeroBuf& zerobuf )
     {
-        std::lock_guard<std::mutex> lock( _lock );
-        _subscriber.deregisterHandler( handler->getEventId( ));
+        _subscriber.unsubscribe( zerobuf );
     }
 
     std::unique_ptr< restbridge::RestBridge > _restBridge;
     zeq::Subscriber _subscriber;
-    bool _running;
-    std::thread _receiveThread;
-    std::mutex _lock;
-
+    QTimer _timer;
 };
 
 RESTBridgeServer::RESTBridgeServer( int argc, const char** argv )
@@ -108,14 +97,14 @@ RESTBridgeServer::RESTBridgeServer( int argc, const char** argv )
 RESTBridgeServer::~RESTBridgeServer() {}
 
 
-void RESTBridgeServer::registerHandler( const RESTBridgeEventHandler& handler )
+void RESTBridgeServer::registerHandler( ::zerobuf::ZeroBuf& zerobuf )
 {
-    _restBridge.registerHandler( handler );
+    _restBridge.registerHandler( zerobuf );
 }
 
-void RESTBridgeServer::deregisterHandler( const RESTBridgeEventHandler& handler )
+void RESTBridgeServer::deregisterHandler( const ::zerobuf::ZeroBuf& zerobuf )
 {
-    _impl->deregisterHandler( handler );
+    _impl->deregisterHandler( zerobuf );
 }
 
 
