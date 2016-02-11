@@ -57,15 +57,13 @@ const qreal ONE_PERCENT = 0.01;
 ContentWindowController::ContentWindowController()
     : _contentWindow( 0 )
     , _displayGroup( 0 )
-{
-}
+{}
 
 ContentWindowController::ContentWindowController( ContentWindow& contentWindow,
                                                   const DisplayGroup& displayGroup )
     : _contentWindow( &contentWindow )
     , _displayGroup( &displayGroup )
-{
-}
+{}
 
 void ContentWindowController::resize( const QSizeF size,
                                       const WindowPoint fixedPoint )

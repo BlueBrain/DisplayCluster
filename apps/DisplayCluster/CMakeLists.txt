@@ -17,8 +17,6 @@ set(DISPLAYCLUSTER_MOC_HEADERS
   DisplayGroupListWidget.h
   MasterApplication.h
   MasterWindow.h
-  TouchArea.h
-  TouchMouseArea.h
   WallApplication.h
   WebbrowserWidget.h
 )
@@ -32,17 +30,18 @@ set(DISPLAYCLUSTER_SOURCES
   DisplayGroupListWidget.cpp
   MasterApplication.cpp
   MasterWindow.cpp
-  QmlTypeRegistration.cpp
-  TouchArea.cpp
-  TouchMouseArea.cpp
   WallApplication.cpp
   WebbrowserWidget.cpp
 )
 
 set(DISPLAYCLUSTER_LINK_LIBRARIES dccore dcwebservice)
+
 if(ENABLE_TUIO_TOUCH_LISTENER)
-  list(APPEND DISPLAYCLUSTER_LINK_LIBRARIES ${X11_LIBRARIES})
+  list(APPEND DISPLAYCLUSTER_MOC_HEADERS MultiTouchListener.h)
+  list(APPEND DISPLAYCLUSTER_SOURCES MultiTouchListener.cpp)
+  list(APPEND DISPLAYCLUSTER_LINK_LIBRARIES ${X11_LIBRARIES} TUIO)
 endif()
+
 set(DISPLAYCLUSTER_RESOURCES resources/displaycluster.qrc)
 
 common_application(displaycluster)

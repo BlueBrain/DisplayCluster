@@ -37,59 +37,62 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DOUBLETAPGESTURERECOGNIZER_H
-#define DOUBLETAPGESTURERECOGNIZER_H
+#ifndef MULTI_TOUCH_LISTENER_H
+#define MULTI_TOUCH_LISTENER_H
 
-#include <QPointF>
-#include <QTime>
-#include <QGestureRecognizer>
+#include "types.h"
 
-class DoubleTapGesture;
+#include <TUIO/TuioListener.h>
+#include <TUIO/TuioClient.h>
+
+#include <QObject>
+#include <QTouchEvent>
+
+class QWindow;
+class DisplayGroupView;
 
 /**
- * Gesture recognizer for a doubletap gesture. The doubletap is recognized
- * within a time period of 750ms.
+ * Listen to TUIO events and transmit the touch points to a target QGraphicsView.
  */
-class DoubleTapGestureRecognizer : public QGestureRecognizer
+class MultiTouchListener : public QObject, public TUIO::TuioListener
 {
+    Q_OBJECT
+
 public:
-    /** Construct a new doubletap gesture recognizer object. */
-    DoubleTapGestureRecognizer();
+    MultiTouchListener( DisplayGroupView* targetWindow, const QSize& wallSize );
+    ~MultiTouchListener();
 
-    /** @sa QGestureRecognizer::create */
-    QGesture* create( QObject *target ) override;
+    void addTuioObject( TUIO::TuioObject* tobj );
+    void updateTuioObject( TUIO::TuioObject* tobj );
+    void removeTuioObject( TUIO::TuioObject* tobj );
 
-    /** @sa QGestureRecognizer::recognize */
-    QGestureRecognizer::Result recognize( QGesture* state,
-                                          QObject* watched,
-                                          QEvent* event ) override;
+    void addTuioCursor( TUIO::TuioCursor* tcur );
+    void updateTuioCursor( TUIO::TuioCursor* tcur );
+    void removeTuioCursor( TUIO::TuioCursor* tcur );
 
-    /** @sa QGestureRecognizer::reset */
-    void reset( QGesture* state ) override;
+    void refresh( TUIO::TuioTime frameTime );
 
-    /**
-     * Installs the doubletap recognizer in the current QApplication.
-     * @sa QGestureRecognizer::registerRecognizer
-     */
-    static void install();
-
-    /**
-     * Uninstalls the doubletap recognizer from the current QApplication.
-     * @sa QGestureRecognizer::unregisterRecognizer
-     */
-    static void uninstall();
-
-    /** @return the gesture type to be used for gesture handling
-     * @sa QWidget::grabGesture
-     * @sa QGestureEvent::gesture
-     */
-    static Qt::GestureType type();
+signals:
+    void touchPointAdded( int id, QPointF position );
+    void touchPointUpdated( int id, QPointF position );
+    void touchPointRemoved( int id );
 
 private:
-    QGestureRecognizer::Result cancel( DoubleTapGesture* gesture );
-    QPointF firstPoint_;
-    QTime firstPointTime_;
-    static Qt::GestureType type_;
+    Q_DISABLE_COPY( MultiTouchListener )
+
+    QPointF _getScreenPos( TUIO::TuioCursor* tcur ) const;
+    QPointF _getWallPos( TUIO::TuioCursor* tcur ) const;
+
+    void _fillBegin( QTouchEvent::TouchPoint& touchPoint ) const;
+    void _fill( QTouchEvent::TouchPoint& touchPoint,
+               const QTouchEvent::TouchPoint& prevPoint ) const;
+    void _handleEvent( TUIO::TuioCursor* tcur, QEvent::Type eventType );
+
+    QMap<int, QTouchEvent::TouchPoint> _touchPointMap;
+    DisplayGroupView* _targetWindow;
+    TUIO::TuioClient _client;
+    QTouchDevice _device;
+    QSize _wallSize;
 };
 
 #endif

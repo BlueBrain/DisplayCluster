@@ -6,6 +6,8 @@
         <file>MasterDisplayGroup.qml</file>
         <file>DisplayGroupBackground.qml</file>
         <file>Wall.qml</file>
+        <file>MultiTouchGestureArea.qml</file>
+        <file>PinchWheelArea.qml</file>
     </qresource>
     <qresource prefix="/img/master">
         <file>close.svg</file>

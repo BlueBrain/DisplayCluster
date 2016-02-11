@@ -38,18 +38,14 @@
 /*********************************************************************/
 
 #include "MultiTouchListener.h"
-
+#include "DisplayGroupView.h"
 #include "log.h"
-
-#include "gestures/DoubleTapGestureRecognizer.h"
-#include "gestures/PanGestureRecognizer.h"
-#include "gestures/PinchGestureRecognizer.h"
 
 #include <QCoreApplication>
 #include <QScreen>
 #include <QWindow>
 
-MultiTouchListener::MultiTouchListener( QWindow* targetWindow,
+MultiTouchListener::MultiTouchListener( DisplayGroupView* targetWindow,
                                         const QSize& wallSize )
     : TUIO::TuioListener()
     , _targetWindow( targetWindow )
@@ -60,10 +56,6 @@ MultiTouchListener::MultiTouchListener( QWindow* targetWindow,
 
     assert( _targetWindow );
 
-    DoubleTapGestureRecognizer::install();
-    PanGestureRecognizer::install();
-    PinchGestureRecognizer::install();
-
     _client.addTuioListener( this );
     _client.connect();
 }
@@ -72,10 +64,6 @@ MultiTouchListener::~MultiTouchListener()
 {
     _client.removeTuioListener( this );
     _client.disconnect();
-
-    DoubleTapGestureRecognizer::uninstall();
-    PanGestureRecognizer::uninstall();
-    PinchGestureRecognizer::uninstall();
 }
 
 void MultiTouchListener::addTuioObject( TUIO::TuioObject* )
@@ -93,13 +81,13 @@ void MultiTouchListener::removeTuioObject( TUIO::TuioObject* )
 void MultiTouchListener::addTuioCursor( TUIO::TuioCursor* tcur )
 {
     _handleEvent( tcur, QEvent::TouchBegin );
-    emit touchPointAdded( tcur->getCursorID(), _getScreenPos( tcur ));
+    emit touchPointAdded( tcur->getCursorID(), _getWallPos( tcur ));
 }
 
 void MultiTouchListener::updateTuioCursor( TUIO::TuioCursor* tcur )
 {
     _handleEvent( tcur, QEvent::TouchUpdate );
-    emit touchPointUpdated( tcur->getCursorID(), _getScreenPos( tcur ));
+    emit touchPointUpdated( tcur->getCursorID(), _getWallPos( tcur ));
 }
 
 void MultiTouchListener::removeTuioCursor( TUIO::TuioCursor* tcur )
@@ -113,6 +101,12 @@ void MultiTouchListener::refresh( TUIO::TuioTime )
 }
 
 QPointF MultiTouchListener::_getScreenPos( TUIO::TuioCursor* tcur ) const
+{
+    return _targetWindow->normalizedToScreenPos(
+                QPointF( tcur->getX(), tcur->getY( )));
+}
+
+QPointF MultiTouchListener::_getWallPos( TUIO::TuioCursor* tcur ) const
 {
     return QPointF( tcur->getX() * _wallSize.width(),
                     tcur->getY() * _wallSize.height( ));
@@ -151,6 +145,7 @@ void MultiTouchListener::_handleEvent( TUIO::TuioCursor* tcur,
     touchPoint.setPressure( 1.0 );
     touchPoint.setPos( screenPos );
     touchPoint.setScreenPos( screenPos ); // used for QGesture::hotspot & itemAt
+
     touchPoint.setNormalizedPos( normalizedPos );
 
     Qt::TouchPointStates touchPointStates = 0;

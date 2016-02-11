@@ -1,6 +1,5 @@
 import QtQuick 2.0
 import DisplayCluster 1.0
-import DisplayClusterApp 1.0
 import "qrc:/qml/core/."
 import "qrc:/qml/core/style.js" as Style
 
@@ -27,28 +26,36 @@ BaseContentWindow {
             displaygroup.focus(contentwindow.id)
     }
 
-    TouchMouseArea {
+    MultiTouchGestureArea
+    {
         id: windowMoveAndResizeArea
 
-        visible: !contentInteractionArea.visible
-        anchors.fill: parent
+        onTapStarted: displaygroup.moveContentWindowToFront(contentwindow.id)
 
-        onDoubleTap: toggleFocusMode()
-        onTouchBegin: displaygroup.moveContentWindowToFront(contentwindow.id)
-        onTouchEnd: contentwindow.state = ContentWindow.NONE
-        onTap: toggleControlsVisibility()
+        onTapEnded: {
+            contentwindow.state = ContentWindow.NONE
+            toggleControlsVisibility()
+        }
+
         onPan: {
             contentwindow.state = ContentWindow.MOVING
-            contentwindow.controller.moveTo(Qt.point(contentwindow.x + delta.x,
-                                                     contentwindow.y + delta.y))
+            contentwindow.controller.moveTo(Qt.point(contentwindow.x + dx,
+                                                     contentwindow.y + dy))
         }
-        onPinch: {
-            contentwindow.state = ContentWindow.RESIZING
-            contentwindow.controller.scale(position, pixelDelta)
+
+        onPanEnded: contentwindow.state = ContentWindow.NONE
+
+        onDoubleTap: toggleFocusMode()
+
+        PinchWheelArea{
+            onPinchChanged: {
+                contentwindow.state = ContentWindow.RESIZING
+                contentwindow.controller.scale(Qt.point(px,py),pixelDelta)
+            }
         }
     }
 
-    TouchMouseArea {
+    MultiTouchGestureArea {
         id: contentInteractionArea
 
         visible: contentwindow.state === ContentWindow.SELECTED
@@ -68,97 +75,18 @@ BaseContentWindow {
         }
 
         onDoubleTap: toggleFocusMode()
-        onTouchBegin: {
+        onTapStarted: {
             displaygroup.moveContentWindowToFront(contentwindow.id)
-            contentwindow.delegate.touchBegin(removeOffset(position))
+            contentwindow.delegate.touchBegin(removeOffset(Qt.point(x,y)))
         }
-        onTouchEnd: contentwindow.delegate.touchEnd(removeOffset(position))
-        onTap: contentwindow.delegate.tap(removeOffset(position))
-        onTapAndHold: contentwindow.delegate.tapAndHold(removeOffset(position))
-        onPan: contentwindow.delegate.pan(removeOffset(position), delta)
-        onPinch: contentwindow.delegate.pinch(removeOffset(position), pixelDelta)
-        onSwipeLeft:contentwindow.delegate.swipeLeft()
-        onSwipeRight: contentwindow.delegate.swipeRight()
-        onSwipeUp: contentwindow.delegate.swipeUp()
-        onSwipeDown: contentwindow.delegate.swipeDown()
-        onKeyPress: contentwindow.delegate.keyPress(key, modifiers, text)
-        onKeyRelease: contentwindow.delegate.keyRelease(key, modifiers, text)
-    }
+        onTapAndHold: contentwindow.delegate.tapAndHold(removeOffset(Qt.point(x,y)))
+        onPan: contentwindow.delegate.pan(Qt.point(x,y), Qt.point( dx, dy))
 
-    WindowBorders {
-        borderDelegate: touchBorderDelegate
-
-        Component {
-            id: touchBorderDelegate
-            BorderRectangle {
-                TouchArea {
-                    tapAndHoldEnabled: false
-                    doubleTapEnabled: false
-                    anchors.fill: parent
-                    onTouchBegin: {
-                        contentwindow.border = parent.border
-                        contentwindow.state = ContentWindow.RESIZING
-                    }
-                    onPan: {
-                        contentwindow.controller.resizeRelative(delta)
-                    }
-                    onTouchEnd: {
-                        contentwindow.border = ContentWindow.NOBORDER
-                        contentwindow.state = ContentWindow.NONE
-                    }
-                }
-            }
+        PinchWheelArea{
+            onPinchChanged: contentwindow.delegate.pinch( parent.removeOffset(
+                                                             Qt.point(px,py)),
+                                                             pixelDelta)
         }
-    }
-
-    WindowControls {
-        listview.delegate: buttonDelegate
-        listview.header: fixedButtonsDelegate
-
-        Component {
-            id: fixedButtonsDelegate
-            Column {
-                CloseControlButton {
-                    TouchMouseArea {
-                        anchors.fill: parent
-                        onTap: closeWindow()
-                    }
-                }
-                OneToOneControlButton {
-                    TouchMouseArea {
-                        anchors.fill: parent
-                        onTap: contentwindow.controller.adjustSizeOneToOne()
-                    }
-                }
-                FocusControlButton {
-                    TouchMouseArea {
-                        anchors.fill: parent
-                        onTap: toggleFocusMode()
-                    }
-                }
-            }
-        }
-
-        Component {
-            id: buttonDelegate
-            WindowControlsDelegate {
-                TouchMouseArea {
-                    anchors.fill: parent
-                    onTap: action.trigger()
-                }
-            }
-        }
-    }
-
-    Text {
-        visible: !parent.titleBar.visible
-        text: contentwindow.label
-        font.pixelSize: 48
-        width: Math.min(paintedWidth, parent.width)
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.topMargin: 10
-        anchors.leftMargin: 10
     }
 
     ContentWindowButton {
@@ -190,10 +118,95 @@ BaseContentWindow {
             contentwindow.state = ContentWindow.RESIZING
         }
         mousearea.onPositionChanged: {
+            if(!mousearea.pressed)
+                return
             var newSize = Qt.size(mouse.x - startMousePos.x + startSize.width,
                                   mouse.y - startMousePos.y + startSize.height)
             contentwindow.controller.resize(newSize)
         }
         mousearea.onReleased: contentwindow.state = ContentWindow.NONE
+    }
+
+    WindowBorders {
+        borderDelegate: touchBorderDelegate
+
+        Component {
+            id: touchBorderDelegate
+            BorderRectangle {
+                MultiTouchGestureArea
+                {
+                    onTapStarted: {
+                        contentwindow.border = parent.border
+                        contentwindow.state = ContentWindow.RESIZING
+                    }
+
+                    onPanEnded: {
+                        contentwindow.border = ContentWindow.NOBORDER
+                        contentwindow.state = ContentWindow.NONE
+                    }
+
+                    onTapEnded: {
+                        contentwindow.border = ContentWindow.NOBORDER
+                        contentwindow.state = ContentWindow.NONE
+                    }
+
+                    onPan: contentwindow.controller.resizeRelative(Qt.point(dx, dy))
+                }
+            }
+        }
+    }
+
+    WindowControls {
+        listview.delegate: buttonDelegate
+        listview.header: fixedButtonsDelegate
+
+        Component {
+            id: fixedButtonsDelegate
+            Column {
+                CloseControlButton {
+                    MultiTouchGestureArea
+                    {
+                        anchors.fill: parent
+                        onTapStarted: closeWindow()
+                    }
+                }
+                OneToOneControlButton {
+                    MultiTouchGestureArea
+                    {
+                        anchors.fill: parent
+                        onTapStarted: contentwindow.controller.adjustSizeOneToOne()
+                    }
+                }
+                FocusControlButton {
+                    MultiTouchGestureArea
+                    {
+                        anchors.fill: parent
+                        onTapStarted: toggleFocusMode()
+                    }
+                }
+            }
+        }
+
+        Component {
+            id: buttonDelegate
+            WindowControlsDelegate {
+                MultiTouchGestureArea
+                {
+                    anchors.fill: parent
+                    onTapStarted: action.trigger()
+                }
+            }
+        }
+    }
+
+    Text {
+        visible: !parent.titleBar.visible
+        text: contentwindow.label
+        font.pixelSize: 48
+        width: Math.min(paintedWidth, parent.width)
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.topMargin: 10
+        anchors.leftMargin: 10
     }
 }

@@ -48,6 +48,7 @@
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QQuickItem>
+#include <QQmlProperty>
 
 #define VIEW_MARGIN 0.05
 
@@ -71,15 +72,15 @@ DisplayGroupView::DisplayGroupView( OptionsPtr options,
 
     setSource( QML_BACKGROUND_URL );
 
-    auto wallObject = rootObject()->findChild<QObject*>( WALL_OBJECT_NAME );
-    wallObject->setProperty( "numberOfTilesX", config.getTotalScreenCountX( ));
-    wallObject->setProperty( "numberOfTilesY", config.getTotalScreenCountY( ));
-    wallObject->setProperty( "mullionWidth", config.getMullionWidth( ));
-    wallObject->setProperty( "mullionHeight", config.getMullionHeight( ));
-    wallObject->setProperty( "screenWidth", config.getScreenWidth( ));
-    wallObject->setProperty( "screenHeight", config.getScreenHeight( ));
-    wallObject->setProperty( "wallWidth", config.getTotalWidth( ));
-    wallObject->setProperty( "wallHeight", config.getTotalHeight( ));
+    wallObject_ = rootObject()->findChild<QObject*>( WALL_OBJECT_NAME );
+    wallObject_->setProperty( "numberOfTilesX", config.getTotalScreenCountX( ));
+    wallObject_->setProperty( "numberOfTilesY", config.getTotalScreenCountY( ));
+    wallObject_->setProperty( "mullionWidth", config.getMullionWidth( ));
+    wallObject_->setProperty( "mullionHeight", config.getMullionHeight( ));
+    wallObject_->setProperty( "screenWidth", config.getScreenWidth( ));
+    wallObject_->setProperty( "screenHeight", config.getScreenHeight( ));
+    wallObject_->setProperty( "wallWidth", config.getTotalWidth( ));
+    wallObject_->setProperty( "wallHeight", config.getTotalHeight( ));
 }
 
 DisplayGroupView::~DisplayGroupView() {}
@@ -134,6 +135,22 @@ void DisplayGroupView::clearScene()
         delete displayGroupItem_;
         displayGroupItem_ = 0;
     }
+}
+
+QPointF DisplayGroupView::normalizedToScreenPos( const QPointF& normalizedPos ) const
+{
+    const float scale = QQmlProperty::read( wallObject_, "scale" ).toFloat();
+    const float offsetX = QQmlProperty::read( wallObject_, "offsetX" ).toFloat();
+    const float offsetY = QQmlProperty::read( wallObject_, "offsetY" ).toFloat();
+    const float mullionWidth = QQmlProperty::read( wallObject_, "mullionWidth" ).toFloat();
+    const float mullionHeight = QQmlProperty::read( wallObject_, "mullionHeight" ).toFloat();
+
+    float screenPosX = normalizedPos.x() * displayGroup_->width() *
+                       scale + offsetX + mullionWidth;
+    float screenPosY = normalizedPos.y() * displayGroup_->height() *
+                       scale + offsetY + mullionHeight;
+
+    return QPointF( screenPosX, screenPosY );
 }
 
 bool DisplayGroupView::event( QEvent *evt )
