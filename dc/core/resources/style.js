@@ -71,3 +71,8 @@ var masterWindowFirstCheckerColor = "#B2C7CF"
 var masterWindowSecondCheckerColor = "#97BFCC"
 var masterWindowBezelsColor = "black"
 var masterWindowMarginFactor = 0.05
+
+var touchPixelDelta = 40
+var tapAndHoldTiming = 1000
+var doubleTapTiming =  750
+
