@@ -46,7 +46,7 @@
 
 class QOffscreenSurface;
 class QOpenGLContext;
-class QOpenGLFunctions_3_0;
+class QOpenGLFunctions;
 
 /**
  * A class responsible for uploading pixel data from CPU memory to GPU memory
@@ -89,7 +89,7 @@ private:
 
     QOpenGLContext* _glContext;
     QOffscreenSurface* _offscreenSurface;
-    QOpenGLFunctions_3_0* _gl;
+    QOpenGLFunctions* _gl;
 
     uint _pbo;
     size_t _bufferSize;

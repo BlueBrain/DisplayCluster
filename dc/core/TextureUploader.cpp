@@ -48,7 +48,6 @@
 #include <QOffscreenSurface>
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
-#include <QOpenGLFunctions_3_0>
 
 TextureUploader::TextureUploader()
     : _glContext( nullptr )
@@ -74,9 +73,7 @@ void TextureUploader::_onInit( QOpenGLContext* shareContext )
     _offscreenSurface->create();
 
     _glContext->makeCurrent( _offscreenSurface );
-
-    _gl = _glContext->versionFunctions< QOpenGLFunctions_3_0 >();
-    _gl->initializeOpenGLFunctions();
+    _gl = _glContext->functions();
 
     _gl->glGenBuffers( 1, &_pbo );
 }

@@ -44,6 +44,8 @@
 #include "FFMPEGVideoStream.h"
 #include "log.h"
 
+#include <cmath>
+
 #define MIN_SEEK_DELTA_SEC  0.5
 
 #pragma clang diagnostic ignored "-Wdeprecated"
