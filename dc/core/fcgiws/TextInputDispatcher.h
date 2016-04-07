@@ -37,52 +37,45 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef WEBSERVICESERVER_H
-#define WEBSERVICESERVER_H
+#ifndef TEXTINPUTDISPATCHER_H
+#define TEXTINPUTDISPATCHER_H
 
-#include <QThread>
+#include "types.h"
+#include "AsciiToQtKeyCodeMapper.h"
 
-#include "dc/webservice/types.h"
+#include <QObject>
 
 /**
- * A Qt wrapper to run the dcWebservice::Server in a QThread.
+ * Dispatch text input from the FCGIWebServiceServer thread to the active ContentWindow.
  */
-class WebServiceServer : public QThread
+class TextInputDispatcher : public QObject
 {
     Q_OBJECT
+
 public:
-    /** Constructor */
-    WebServiceServer(const unsigned int port, QObject *parentObject = 0);
-
-    /** Destructor */
-    ~WebServiceServer();
-
     /**
-     * Registers a request handler with a particular regular expression.
-     *
-     * When the URL of an incoming request matches the regular expression
-     * the handler is invoked.
-     *
-     * @param pattern A regular expression.
-     * @param handler A request handler. If the handler is a QObject, it should be moved
-     *        to this thread before making any signal/slot connections.
-     * @return true if the handler was registered succesfully, false otherwise,
-     *         for instance if the regular expression is not valid.
+     * Constructor.
+     * @param displayGroup The DisplayGroup which holds the target ContentWindow
+     * @param parentObject An optional parent QObject
      */
-    bool addHandler(const std::string& pattern, dcWebservice::HandlerPtr handler);
+    TextInputDispatcher( DisplayGroupPtr displayGroup,
+                         QObject* parentObject = 0 );
 
+    /** Destructor. */
+    ~TextInputDispatcher();
+
+public slots:
     /**
-     * Stop the server. This method is thread-safe.
+     * Send the given key event to the active (frontmost) window
+     * @param key The key code to send
      */
-    bool stop();
-
-protected:
-    /** @overload Start the server. */
-    void run() override;
+    void sendKeyEventToActiveWindow( char key ) const;
 
 private:
-    dcWebservice::Server* server_;
-    unsigned int port_;
+    Q_DISABLE_COPY( TextInputDispatcher )
+
+    DisplayGroupPtr displayGroup_;
+    AsciiToQtKeyCodeMapper keyMapper_;
 };
 
-#endif // WEBSERVICESERVER_H
+#endif // TEXTINPUTDISPATCHER_H

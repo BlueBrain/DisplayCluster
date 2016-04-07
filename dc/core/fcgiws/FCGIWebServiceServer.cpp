@@ -37,80 +37,44 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MASTERAPPLICATION_H
-#define MASTERAPPLICATION_H
+#include "FCGIWebServiceServer.h"
 
-#include "config.h"
-#include "types.h"
+#include "dc/fcgiwebservice/Server.h"
+#include "dc/fcgiwebservice/DefaultHandler.h"
 
-#include <QApplication>
-#include <QThread>
-#include <boost/scoped_ptr.hpp>
+#include "log.h"
 
-class MasterToWallChannel;
-class MasterFromWallChannel;
-class MasterWindow;
-class PixelStreamerLauncher;
-class PixelStreamWindowManager;
-class FCGIWebServiceServer;
-class RESTBridgeServer;
-class TextInputDispatcher;
-class MasterConfiguration;
-class MultiTouchListener;
+FCGIWebServiceServer::FCGIWebServiceServer( const unsigned int port,
+                                    QObject* parentObject )
+    : QThread( parentObject )
+    , server_( new dcWebservice::Server( ))
+    , port_( port )
+{}
 
-/**
- * The main application for the Master process.
- */
-class MasterApplication : public QApplication
+FCGIWebServiceServer::~FCGIWebServiceServer()
 {
-    Q_OBJECT
+    delete server_;
+}
 
-public:
-    /**
-     * Constructor
-     * @param argc Command line argument count (required by QApplication)
-     * @param argv Command line arguments (required by QApplication)
-     * @param worldChannel The world MPI channel
-     * @throw std::runtime_error if an error occured during initialization
-     */
-    MasterApplication(int &argc, char **argv, MPIChannelPtr worldChannel);
+bool FCGIWebServiceServer::addHandler( const std::string& pattern,
+                                   dcWebservice::HandlerPtr handler )
+{
+    if( server_->addHandler( pattern, handler ))
+        return true;
 
-    /** Destructor */
-    virtual ~MasterApplication();
+    put_flog( LOG_WARN, "Invalid regex: '%s', handler could not be added",
+              pattern.c_str( ));
+    return false;
+}
 
-private:
-    boost::scoped_ptr<MasterToWallChannel> masterToWallChannel_;
-    boost::scoped_ptr<MasterFromWallChannel> masterFromWallChannel_;
-    boost::scoped_ptr<MasterWindow> masterWindow_;
-    boost::scoped_ptr<MasterConfiguration> config_;
-    boost::scoped_ptr<deflect::Server> deflectServer_;
-    boost::scoped_ptr<PixelStreamerLauncher> pixelStreamerLauncher_;
-    boost::scoped_ptr<PixelStreamWindowManager> pixelStreamWindowManager_;
-    boost::scoped_ptr<FCGIWebServiceServer> fcgiServer_;
-    boost::scoped_ptr<RESTBridgeServer> restBridgeServer_;
-    boost::scoped_ptr<TextInputDispatcher> textInputDispatcher_;
-#if ENABLE_TUIO_TOUCH_LISTENER
-    boost::scoped_ptr<MultiTouchListener> touchListener_;
-#endif
+void FCGIWebServiceServer::run()
+{
+    put_flog( LOG_INFO, "Listening on port: %d", port_ );
+    server_->run( port_ );
+}
 
-    DisplayGroupPtr displayGroup_;
-    MarkersPtr markers_;
-
-    QThread mpiSendThread_;
-    QThread mpiReceiveThread_;
-
-    void init( int argc, const char** argv );
-    bool createConfig(const QString& filename);
-    void startDeflectServer();
-    void startFCGIservice(const int webServicePort);
-    void startRestBridgeService(int argc, const char** argv);
-    void restoreBackground();
-    void initPixelStreamLauncher();
-    void initMPIConnection();
-
-#if ENABLE_TUIO_TOUCH_LISTENER
-    void initTouchListener();
-#endif
-};
-
-#endif // MASTERAPPLICATION_H
+bool FCGIWebServiceServer::stop()
+{
+    put_flog( LOG_INFO, "Shutting down" );
+    return server_->stop();
+}

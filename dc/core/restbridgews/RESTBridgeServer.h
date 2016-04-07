@@ -1,6 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/* Copyright (c) 2015, EPFL/Blue Brain Project                       */
+/*                     Ahmet Bilgili <ahmet.bilgili@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -37,48 +37,31 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "TextInputHandler.h"
+#ifndef RESTBRIDGESERVER_H
+#define RESTBRIDGESERVER_H
 
-#include "ws/DisplayGroupAdapter.h"
-#include "dc/webservice/Response.h"
-#include "dc/webservice/Request.h"
+#include <zerobuf/Zerobuf.h>
 
-TextInputHandler::TextInputHandler(DisplayGroupAdapterPtr displayGroupAdapter)
-    : displayGroupAdapter_(displayGroupAdapter)
+/**
+ * RESTBridge server class for handling the zeq messages
+ * using the REST interface
+ */
+class RESTBridgeServer : public QObject
 {
-}
+    Q_OBJECT
+public:
 
-TextInputHandler::~TextInputHandler()
-{
-}
+    RESTBridgeServer( int argc, const char** argv );
+    ~RESTBridgeServer();
 
-dcWebservice::ConstResponsePtr TextInputHandler::handle(const dcWebservice::Request& request) const
-{
-    dcWebservice::ResponsePtr response(new dcWebservice::Response());
+    void registerHandler( ::zerobuf::ZeroBuf& zerobuf );
+    void deregisterHandler( const ::zerobuf::ZeroBuf& zerobuf );
 
-    if(request.data.size() < 1)
-    {
-        response->statusCode = 400;
-        response->statusMsg = "Bad Request";
-        response->body = "{\"code\":\"400\", \"msg\":\"Bad Request. Expected at least one character.\"}";
-    }
-    else if (displayGroupAdapter_->hasWindows())
-    {
-    for(std::string::const_iterator it = request.data.begin(); it != request.data.end(); ++it)
-    {
-        emit receivedKeyInput(*it);
-    }
+private:
 
-        response->statusCode = 200;
-        response->statusMsg = "OK";
-        response->body = "{\"code\":\"200\", \"msg\":\"OK, text added\"}";
-    }
-    else
-    {
-        response->statusCode = 404;
-        response->statusMsg = "Not Found";
-        response->body = "{\"code\":\"404\", \"msg\":\"No Window Found\"}";
-    }
+    struct Impl;
+    QScopedPointer<Impl> _impl;
 
-    return response;
-}
+};
+
+#endif // RESTBRIDGESERVER_H

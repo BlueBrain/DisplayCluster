@@ -1,6 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/* Copyright (c) 2015, EPFL/Blue Brain Project                       */
+/*                     Ahmet Bilgili <ahmet.bilgili@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -37,56 +37,75 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef TEXTINPUTHANDLER_H
-#define TEXTINPUTHANDLER_H
+#include "RESTBridgeServer.h"
 
-#include <QObject>
+#include <restbridge/RestBridge.h>
+#include <zeq/event.h>
+#include <zeq/publisher.h>
+#include <zeq/subscriber.h>
 
-#include "dc/webservice/Handler.h"
+#include <QTimer>
 
-#include "types.h"
-
-/**
- * Handle "/textinput" requests for the WebService.
- *
- * When a valid request is received, the receivedText() signal is emitted.
- * This class is typically used in the WebServiceServer thread and communicates
- * with the TextInputDispatcher in the main thread via signals/slots.
- */
-class TextInputHandler : public QObject, public dcWebservice::Handler
+struct RESTBridgeServer::Impl
 {
-    Q_OBJECT
+    Impl( RESTBridgeServer& server, int argc, const char** argv )
+        : _server( server )
+        , _restBridge( restbridge::RestBridge::parse( argc, argv ))
+        , _subscriber( _restBridge->getSubscriberURI( ))
+        , _timer( &server )
+    {
+        if( !_restBridge )
+            throw std::runtime_error( "RESTBridge initialization failed" );
 
-public:
-    /**
-     * Handle TextInput requests.
-     * @param displayGroupAdapter An adapter over the displayGroup, used for
-     *        unit testing. If provided, the class takes ownership of it.
-     */
-    TextInputHandler( DisplayGroupAdapterPtr displayGroupAdapter );
+        if( !_restBridge.isRunning( ))
+            throw std::runtime_error( "RESTBridge is not running" );
 
-    /** Destructor */
-    virtual ~TextInputHandler();
+        _timer.setInterval( 100 );
+        QObject::connect( &_timer, SIGNAL(timeout()), [this]() { receive(); });
+        _timer.start();
+    }
 
-    /**
-     * Handle a request.
-     * @param request A valid dcWebservice::Request object.
-     * @return A valid Response object.
-     */
-    dcWebservice::ConstResponsePtr
-    handle( const dcWebservice::Request& request ) const override;
+    void receive()
+    {
+        _subscriber.receive( 0 );
+    }
 
-signals:
-    /**
-     * Emitted whenever a request is successfully handled.
-     * @param key The key code received in the Request.
-     */
-    void receivedKeyInput( char key ) const;
+    ~Impl()
+    {
+        _timer.stop();
+    }
 
-private:
-    Q_DISABLE_COPY( TextInputHandler )
+    void registerHandler( ::zerobuf::ZeroBuf& zerobuf )
+    {
+        _subscriber.subscribe( zerobuf );
+    }
 
-    DisplayGroupAdapterPtr displayGroupAdapter_;
+    void deregisterHandler( const ::zerobuf::ZeroBuf& zerobuf )
+    {
+        _subscriber.unsubscribe( zerobuf );
+    }
+
+    std::unique_ptr< restbridge::RestBridge > _restBridge;
+    zeq::Subscriber _subscriber;
+    QTimer _timer;
 };
 
-#endif // TEXTINPUTHANDLER_H
+RESTBridgeServer::RESTBridgeServer( int argc, const char** argv )
+    : _impl( new RESTBridgeServer::Impl( *this, argc, argv ))
+{}
+
+RESTBridgeServer::~RESTBridgeServer() {}
+
+
+void RESTBridgeServer::registerHandler( ::zerobuf::ZeroBuf& zerobuf )
+{
+    _restBridge.registerHandler( zerobuf );
+}
+
+void RESTBridgeServer::deregisterHandler( const ::zerobuf::ZeroBuf& zerobuf )
+{
+    _impl->deregisterHandler( zerobuf );
+}
+
+
+

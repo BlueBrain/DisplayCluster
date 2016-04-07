@@ -42,7 +42,7 @@
 
 #include <QObject>
 
-#include "ws/TextInputDispatcher.h"
+#include "fcgiws/TextInputDispatcher.h"
 
 class MockTextInputDispatcher : public TextInputDispatcher
 {

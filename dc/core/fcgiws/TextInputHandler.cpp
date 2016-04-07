@@ -37,45 +37,48 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef TEXTINPUTDISPATCHER_H
-#define TEXTINPUTDISPATCHER_H
+#include "TextInputHandler.h"
 
-#include "types.h"
-#include "AsciiToQtKeyCodeMapper.h"
+#include "fcgiws/DisplayGroupAdapter.h"
+#include "dc/fcgiwebservice/Response.h"
+#include "dc/fcgiwebservice/Request.h"
 
-#include <QObject>
-
-/**
- * Dispatch text input from the WebServiceServer thread to the active ContentWindow.
- */
-class TextInputDispatcher : public QObject
+TextInputHandler::TextInputHandler(DisplayGroupAdapterPtr displayGroupAdapter)
+    : displayGroupAdapter_(displayGroupAdapter)
 {
-    Q_OBJECT
+}
 
-public:
-    /**
-     * Constructor.
-     * @param displayGroup The DisplayGroup which holds the target ContentWindow
-     * @param parentObject An optional parent QObject
-     */
-    TextInputDispatcher( DisplayGroupPtr displayGroup,
-                         QObject* parentObject = 0 );
+TextInputHandler::~TextInputHandler()
+{
+}
 
-    /** Destructor. */
-    ~TextInputDispatcher();
+dcWebservice::ConstResponsePtr TextInputHandler::handle(const dcWebservice::Request& request) const
+{
+    dcWebservice::ResponsePtr response(new dcWebservice::Response());
 
-public slots:
-    /**
-     * Send the given key event to the active (frontmost) window
-     * @param key The key code to send
-     */
-    void sendKeyEventToActiveWindow( char key ) const;
+    if(request.data.size() < 1)
+    {
+        response->statusCode = 400;
+        response->statusMsg = "Bad Request";
+        response->body = "{\"code\":\"400\", \"msg\":\"Bad Request. Expected at least one character.\"}";
+    }
+    else if (displayGroupAdapter_->hasWindows())
+    {
+    for(std::string::const_iterator it = request.data.begin(); it != request.data.end(); ++it)
+    {
+        emit receivedKeyInput(*it);
+    }
 
-private:
-    Q_DISABLE_COPY( TextInputDispatcher )
+        response->statusCode = 200;
+        response->statusMsg = "OK";
+        response->body = "{\"code\":\"200\", \"msg\":\"OK, text added\"}";
+    }
+    else
+    {
+        response->statusCode = 404;
+        response->statusMsg = "Not Found";
+        response->body = "{\"code\":\"404\", \"msg\":\"No Window Found\"}";
+    }
 
-    DisplayGroupPtr displayGroup_;
-    AsciiToQtKeyCodeMapper keyMapper_;
-};
-
-#endif // TEXTINPUTDISPATCHER_H
+    return response;
+}

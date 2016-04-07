@@ -42,7 +42,7 @@
 #include <boost/test/unit_test.hpp>
 namespace ut = boost::unit_test;
 
-#include "ws/AsciiToQtKeyCodeMapper.h"
+#include "fcgiws/AsciiToQtKeyCodeMapper.h"
 
 #include <qnamespace.h>
 

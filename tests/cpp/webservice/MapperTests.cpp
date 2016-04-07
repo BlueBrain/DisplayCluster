@@ -39,8 +39,8 @@
 
 
 #define BOOST_TEST_MODULE MapperTests
-#include "dc/webservice/Mapper.h"
-#include "dc/webservice/DefaultHandler.h"
+#include "dc/fcgiwebservice/Mapper.h"
+#include "dc/fcgiwebservice/DefaultHandler.h"
 #include <boost/test/unit_test.hpp>
 namespace ut = boost::unit_test;
 

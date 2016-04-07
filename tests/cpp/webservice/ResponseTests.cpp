@@ -40,7 +40,7 @@
 
 #define BOOST_TEST_MODULE ResponseTests
 #include <boost/test/unit_test.hpp>
-#include "dc/webservice/Response.h"
+#include "dc/fcgiwebservice/Response.h"
 namespace ut = boost::unit_test;
 
 BOOST_AUTO_TEST_CASE( testSerializeWithEmptyBody )

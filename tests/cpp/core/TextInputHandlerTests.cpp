@@ -43,12 +43,12 @@ namespace ut = boost::unit_test;
 
 #include "MinimalGlobalQtApp.h"
 
-#include "ws/TextInputHandler.h"
-#include "ws/DisplayGroupAdapter.h"
+#include "fcgiws/TextInputHandler.h"
+#include "fcgiws/DisplayGroupAdapter.h"
 
-#include "dc/webservice/Response.h"
-#include "dc/webservice/Request.h"
-#include "dc/webservice/types.h"
+#include "dc/fcgiwebservice/Response.h"
+#include "dc/fcgiwebservice/Request.h"
+#include "dc/fcgiwebservice/types.h"
 
 #include "MockTextInputDispatcher.h"
 
