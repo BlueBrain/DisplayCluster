@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/qml">
+        <file>qml/main.qml</file>
+        <file>qml/FileBrowser/FileBrowser.qml</file>
+    </qresource>
+    <qresource prefix="/staticimages">
+        <file>images/folder.png</file>
+        <file>images/unknownfile.png</file>
+        <file>images/up.png</file>
+    </qresource>
+</RCC>
